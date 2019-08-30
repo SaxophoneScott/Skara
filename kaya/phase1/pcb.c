@@ -6,14 +6,14 @@
 HIDDEN pcb_PTR pcbList_h;
 
 /* manage "free" list of PCBs */
-void freePcb(pcb t *p)
+void freePcb(pcb_t *p)
 /* Insert the element pointed to by p onto the pcbFree list. */
 {
-	insertProcQ(&pcbList_h, p);
+	insertProcQ(&pcbList_h, &p);
 }
 
 
-pcb_t *allocPcb()
+pcb_PTR allocPcb()
 /* Return NULL if the pcbFree list is empty. Otherwise, remove
 an element from the pcbFree list, provide initial values for ALL
 of the ProcBlk’s fields (i.e. NULL and/or 0) and then return a
