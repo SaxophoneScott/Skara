@@ -65,13 +65,30 @@ void insertProcQ(pcb_t **tp, pcb_t *p)
 tail-pointer is pointed to by tp. Note the double indirection through
 tp to allow for the possible updating of the tail pointer as well. */
 {
+  /*check if empty queue*/
+  if(emptyProcQ(*tp))
+    {
+      /*set the tail pointer to the new node */
+      *tp=*p;
+      /*assign p_next to point to itself */
+      p-> p_next = *p;
+      /* assign p_prev to point to itself */
+      p-> p_prev = *p;
+      
+    }
+    else{
 	/*assign the current tail's next to p's next*/
 	(*p).p_next = (**tp).p_next;
+	/*assign the heads previous to p*/
+	(**tp).p_next.p_prev=*p;
+	/*assign p's previous to tail*/
+	*p.p_prev=**tp;
 	/*assign the current tail's next to be p*/
 	(**tp).p_next = *p;
+	
 	/*change tail to p*/
 	(*tp) = *p;
-
+    }
 }
 
 pcb_t *removeProcQ(pcb_t **tp)
@@ -82,9 +99,17 @@ was initially empty; otherwise return the pointer to the removed element. Update
 	if(emptyProcQ(*tp)){
 		return(NULL);
 	}
+	/* if the tail pointer is also the head, set **tp to null, and remove it from the list*/
+	else if(**tp==*(headProcQ(*tp)){
+	    head =(**tp);
+	    **tp = NULL;
+	    return(head);
+	}
 	else{
 		head = (**tp).p_next;
 		/*assigns the tail's next to be it's next's next*/
+		/*assigns the new heads previous to the tail*/
+		head.p_next.p_prev=**tail;
 		(**tp).p_next = ((**tp).p_next).p_next;
 		return(&head);
 	}
@@ -100,29 +125,51 @@ can point to any element of the process queue. */
 	if(emptyProcQ(*tp)){
 		return(NULL);
 	}
+	/* length = 1*/
+	else if(**tp==*(headProcQ(*tp)){
+	    /* check to see if the tail pointer is the same as the proccess block*/
+	    if(**tp == *p)
+	      {
+	    removeProcQ(tp);
+	      }
+	    /* otherwise, its doesnt exist, so :(*/
+	    else
+	      {
+		return(NULL);
+	      }
+	  
+	}
 	/*if we're removing tail, special case bc we dont know prev elem*/
 	/*use doubly linked list??*/
 	else{
-		prev_elem = NULL;
+	  if( **tp == *p)
+	    {
+	      **tp= **tp.p_prev;
+	      removeProcQ(tp);
+	    }
+	  else{
+	  at_tail = 0;
+	  
 		current_elem = **tp;
 		while(!at_tail){
 			if(current_elem == *p){
-				remove p; /*REMOVE LATER*/
-				return(p);
+			  pcb_t* temp= current_elem.p_prev;
+			  removeProcQ(&temp);
 			}
 			else{
-				prev_elem = current_elem;
 				current_elem = current_elem.p_next;
-				if(current_elem == tp){
+				if(current_elem == **tp){
 					at_tail = 1;
+				}
 				else{
 					at_tail = 0;
 				}
-				}
 			}
 		}
+		return(NULL);
+	  }
 	}
-}
+	  }
 
 pcb_t *headProcQ(pcb_t *tp)
 /* Return a pointer to the first ProcBlk from the process queue whose
@@ -157,7 +204,7 @@ to by prnt. */
 	/*make p's parent prnt*/
 	(*p).p_prnt = *prnt;
 	/*make the prnt's child its sibling*/
-	(*prnt).p_sib = (*prnt).p_child;
+	(*p).p_sib = (*prnt).p_child;
 	/*make p the prnt's child*/
 	(*prnt).p_child = *p;
 
@@ -172,11 +219,11 @@ Otherwise, return a pointer to this removed first child ProcBlk. */
 		return NULL;
 	}
 	else{
-		child = (*p).p_child
+	  child = (*p).p_child;
 		/*make p's sib its child*/
-		(*p).p_child = (*p).p_sib;
+		(*p).p_child = child.p_sib;
 		/*change child's prnt and sib??*/
-		return(child)
+		return(child);
 	}
 }
 
@@ -205,3 +252,4 @@ child of its parent. */
 		}
 	}
 }
+                  
