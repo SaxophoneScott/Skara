@@ -9,7 +9,7 @@ HIDDEN pcb_PTR pcbList_h;
 void freePcb(pcb_t *p)
 /* Insert the element pointed to by p onto the pcbFree list. */
 {
-	insertProcQ(&pcbList_h, &p);
+	insertProcQ(&pcbList_h, p);
 }
 
 
@@ -21,12 +21,23 @@ pointer to the removed element. ProcBlk’s get reused, so it is
 important that no previous value persist in a ProcBlk when it
 gets reallocated. */
 {
-	if(pcbList_h == NULL){
+	/* empty list case */
+	if(emptyProcQ(pcbList_h)){
 		return(NULL);
 	}
+	/* non-empty list case */
 	else{
-		return(pcbList_h.dequeue());
+		pcb_PTR elem = removeProcQ(&pcbList_h);
+		/* initialize/clear out all fields */
+		elem->p_prev = NULL;
+		elem->p_next = NULL;
+		elem->p_prnt = NULL;
+		elem->p_child = NULL;
+		elem->p_sib_prev = NULL;
+		elem->p_sib_next = NULL;
+		elem->p_semAdd = NULL;
 	}
+	return(elem)
 }
 
 void initPcbs()
@@ -46,7 +57,7 @@ only once during data structure initialization. */
 /* queue management */
 
 /* return type = pointer to pcb */
-pcb_t* mkEmtpyProcQ()
+pcb_PTR mkEmptyProcQ()
 /* This method is used to initialize a variable to be tail pointer to a
 process queue.
 Return a pointer to the tail of an empty process queue; i.e. NULL. */
@@ -54,43 +65,35 @@ Return a pointer to the tail of an empty process queue; i.e. NULL. */
 	return(NULL);
 }
 
-int emptyProcQ(pcb_t* tp)
+int emptyProcQ(pcb_PTR tp)
 /* Return TRUE if the queue whose tail is pointed to by tp is empty.
 Return FALSE otherwise. */
 {
 	return(tp == NULL);
 }
 
-void insertProcQ(pcb_t **tp, pcb_t *p)
+void insertProcQ(pcb_PTR *tp, pcb_PTR p)
 /* Insert the ProcBlk pointed to by p into the process queue whose
 tail-pointer is pointed to by tp. Note the double indirection through
 tp to allow for the possible updating of the tail pointer as well. */
 {
   /* empty queue case */
 	if(emptyProcQ(*tp)){
-		/* set tail to new node */
-		*tp = p;
-		/* assign p_next to point to itself */
-		p->p_next = p;
-		/* assign p_prev to point to itself */
-		p->p_prev = p;
+		*tp = p; 		/* set tail to new node */
+		p->p_prev = p; 	/* assign p_prev to point to itself */
+		p->p_next = p; 	/* assign p_next to point to itself */
 	} 
     /* non-empty queue case */
     else {
-		/* assign the current tail's next to p's next */
-		p->p_next = (*tp)->p_next;
-		/* assign the heads previous to p */
-		(*tp)->p_next->p_prev = p;
-		/* assign p's previous to tail */
-		p->p_prev = *tp;
-		/* assign the current tail's next to be p */
-		(*tp)->p_next = p;
-		/* change tail to p */
-		*tp = p;
+		p->p_next = (*tp)->p_next; 	/* assign p's next to be current tail's next */
+		(*tp)->p_next->p_prev = p;	/* assign head's prev to be p */
+		p->p_prev = *tp; 			/* assign p's previous to be current tail */
+		(*tp)->p_next = p; 			/* assign current tail's next to be p */
+		*tp = p; 					/* change tail to be p */
     }
 }
 
-pcb_t *removeProcQ(pcb_t **tp)
+pcb_PTR removeProcQ(pcb_PTR *tp)
 /* Remove the first (i.e. head) element from the process queue whose
 tail-pointer is pointed to by tp. Return NULL if the process queue
 was initially empty; otherwise return the pointer to the removed element. Update the process queue’s tail pointer if necessary. */
@@ -99,23 +102,22 @@ was initially empty; otherwise return the pointer to the removed element. Update
 	if(emptyProcQ(*tp)){
 		return(NULL);
 	}
-	/* if the tail pointer is also the head, set **tp to null, and remove it from the list*/
+	/* single-element queue case */
 	else if(*tp == headProcQ(*tp)){
 	    pcb_PTR head = *tp;
-	    *tp = (NULL);
+	    *tp = mkEmptyProcQ(); 		/* make the list empty */
 	    return(head);
 	}
+	/* multi-element queue case */
 	else{
-		pcb_PTR head = tp->p_next;
-		/*assigns the new heads previous to the tail*/
-		head->p_next->p_prev=*tp;
-		/*assigns the tail's next to be it's next's next*/
-		(*tp)->p_next = (*tp)->p_next->p_next;
+		pcb_PTR head = (*tp)->p_next;
+		(*tp)->p_next = (*tp)->p_next->p_next; 	/*assign tail's next to be new head (what was the second elem) */
+		(*tp)->p_next->p_prev=*tp; 				/*assign new head's prev to the tail*/
 		return(head);
 	}
 }
 
-pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
+pcb_PTR outProcQ(pcb_PTR *tp, pcb_PTR p)
 /* Remove the ProcBlk pointed to by p from the process queue whose
 tail-pointer is pointed to by tp. Update the process queue’s tail
 pointer if necessary. If the desired entry is not in the indicated queue
@@ -126,26 +128,27 @@ can point to any element of the process queue. */
 	if(emptyProcQ(*tp)){
 		return(NULL);
 	}
-	/* length = 1 */
+	/* single-element queue case */
 	else if(*tp == headProcQ(*tp)){
-	    /* check to see if the tail pointer is the same as the proccess block*/
+	    /* tail is the node to remove */
 	    if(*tp == p){
 	    	removeProcQ(tp);
 	    }
-	    /* otherwise, its doesnt exist, so :(*/
+	    /* p DNE */
 	    else{
 			return(NULL);
 	    } 
 	}
-	/* length >= 2 */
+	/* multi-element queue case */
 	else{
-		/* remove tail */ 
+		/* tail is the node to remove */ 
 	  	if(*tp == p){
 	    	*tp = *tp->p_prev;
 	    	removeProcQ(tp);
 		}
+		/* remove some internal node */
 	  	else{
-	  		at_tail = 0;
+	  		at_tail = 0; 	/* tracker to see if looped all the way back around to tail, i.e. p DNE */
 			pcb_PTR current_elem = *tp;
 			while(!at_tail){
 				if(current_elem == p){
@@ -162,19 +165,22 @@ can point to any element of the process queue. */
 					}
 				}
 			}
+			/* looped through entire queue, so p DNE */
 			return(NULL);
 	  	}
 	}
 }
 
-pcb_t *headProcQ(pcb_t *tp)
+pcb_PTR headProcQ(pcb_PTR tp)
 /* Return a pointer to the first ProcBlk from the process queue whose
 tail is pointed to by tp. Do not remove this ProcBlkfrom the process
 queue. Return NULL if the process queue is empty. */
 {
+	/* empty queue case */
 	if(emptyProcQ(*tp)){
 		return(NULL);
 	}
+	/* non-empty queue case */
 	else{
 		return(tp->p_next);
 	}
@@ -182,33 +188,32 @@ queue. Return NULL if the process queue is empty. */
 
 /* parent/child manager */
 
-int emptyChild(pcb_t *p)
+int emptyChild(pcb_PTR p)
 /* Return TRUE if the ProcBlk pointed to by p has no children. Return FALSE otherwise. */
 {
+	/* children DNE */
 	if(p->p_child == NULL){
 		return 1;
 	}
+	/* children exist */
 	else{
 		return 0;
 	}
 }
 
-void insertChild(pcb_t *prnt, pcb_t *p)
+void insertChild(pcb_PTR prnt, pcb_PTR p)
 /* Make the ProcBlk pointed to by p a child of the ProcBlk pointed
 to by prnt. */
 {
-	/*make p's parent prnt*/
-	p->p_prnt = prnt;
-	/*make the prnt's child p's next sib*/
-	p->p_sib_next = prnt->p_child;
-	/* make the prnt's child's prev sib p */
-	prnt->p_child->p_sib_prev = p;
-	/*make p the prnt's child*/
-	prnt->p_child = p;
+	p->p_prnt = prnt; 				/* assign p's prnt to be prnt*/
+	p->p_sib_next = prnt->p_child; 	/* assign p's next sib to be prnt's child */
+	prnt->p_child->p_sib_prev = p;	/* assign the prnt's child's prev sib to be p */
+	prnt->p_child = p;				/* assign prnt's child to be p*/
+
 
 }
 
-pcb_t *removeChild(pcb_t *p)
+pcb_PTR removeChild(pcb_PTR p)
 /* Make the first child of the ProcBlk pointed to by p no longer a
 child of p. Return NULL if initially there were no children of p.
 Otherwise, return a pointer to this removed first child ProcBlk. */
@@ -227,24 +232,24 @@ Otherwise, return a pointer to this removed first child ProcBlk. */
 	}
 }
 
-pcb_t *outChild(pcb_t *p)
+pcb_PTR outChild(pcb_PTR p)
 /* Make the ProcBlk pointed to by p no longer the child of its parent.
 If the ProcBlk pointed to by p has no parent, return NULL; otherwise,
 return p. Note that the element pointed to by p need not be the first
 child of its parent. */
 {
-	/* it has no parent */
+	/* parent DNE */
 	if(p->p_prnt == NULL){
 		return(NULL);
 	}
-	/* it has a parent */
+	/* parent exists */
 	else{
 		pcb_PTR parent = p->p_prnt;
-		/* it's the first child */
+		/* want to remove 1st child */
 		if(parent->p_child == p){
 			removeChild(parent);
 		}
-		/* it's not the first child */
+		/* want to remove internal child */
 		else{
 			done = 0
 			current_child = parent->p_child;
