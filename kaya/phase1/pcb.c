@@ -21,13 +21,14 @@ pointer to the removed element. ProcBlk’s get reused, so it is
 important that no previous value persist in a ProcBlk when it
 gets reallocated. */
 {
+	pcb_PTR elem;
 	/* empty list case */
 	if(emptyProcQ(pcbList_h)){
 		return(NULL);
 	}
 	/* non-empty list case */
 	else{
-		pcb_PTR elem = removeProcQ(&pcbList_h);
+		elem = removeProcQ(&pcbList_h);
 		/* initialize/clear out all fields */
 		elem->p_prev = NULL;
 		elem->p_next = NULL;
@@ -37,7 +38,7 @@ gets reallocated. */
 		elem->p_sib_next = NULL;
 		elem->p_semAdd = NULL;
 	}
-	return(elem)
+	return(elem);
 }
 
 void initPcbs()
@@ -45,9 +46,10 @@ void initPcbs()
 static array of MAXPROC ProcBlk’s. This method will be called
 only once during data structure initialization. */
 {
+	int i;
 	static pcb_t procTable[MAXPROC];
 
-	pcbList_h = QUEUE;
+	pcbList_h = mkEmptyProcQ();
 
 	for(i=0; i < MAXPROC; i++){
 		freePcb(&(procTable[i]));
@@ -132,7 +134,7 @@ can point to any element of the process queue. */
 	else if(*tp == headProcQ(*tp)){
 	    /* tail is the node to remove */
 	    if(*tp == p){
-	    	removeProcQ(tp);
+	    	return(removeProcQ(tp));
 	    }
 	    /* p DNE */
 	    else{
@@ -143,12 +145,12 @@ can point to any element of the process queue. */
 	else{
 		/* tail is the node to remove */ 
 	  	if(*tp == p){
-	    	*tp = *tp->p_prev;
-	    	removeProcQ(tp);
+	    	*tp = (*tp)->p_prev;
+	    	return(removeProcQ(tp));
 		}
 		/* remove some internal node */
 	  	else{
-	  		at_tail = 0; 	/* tracker to see if looped all the way back around to tail, i.e. p DNE */
+	  		int at_tail = 0; 	/* tracker to see if looped all the way back around to tail, i.e. p DNE */
 			pcb_PTR current_elem = *tp;
 			while(!at_tail){
 				if(current_elem == p){
@@ -177,7 +179,7 @@ tail is pointed to by tp. Do not remove this ProcBlkfrom the process
 queue. Return NULL if the process queue is empty. */
 {
 	/* empty queue case */
-	if(emptyProcQ(*tp)){
+	if(emptyProcQ(tp)){
 		return(NULL);
 	}
 	/* non-empty queue case */
@@ -247,25 +249,24 @@ child of its parent. */
 		pcb_PTR parent = p->p_prnt;
 		/* want to remove 1st child */
 		if(parent->p_child == p){
-			removeChild(parent);
+			return(removeChild(parent));
 		}
 		/* want to remove internal child */
 		else{
-			done = 0
-			current_child = parent->p_child;
+			int done = 0;
+			pcb_PTR current_child = parent->p_child;
 			while(!done){
 				if(current_child == p){
 					/* remove */
 					current_child->p_sib_prev->p_sib_next = current_child->p_sib_next;
 					current_child->p_sib_next->p_sib_prev = current_child->p_sib_prev;
 					done = 1;
-					return(p);
 				}
 				else{
 					current_child = current_child->p_sib_next;
 				}
 			}
+			return(p);
 		}
 	}
-}
-                  
+} 
