@@ -138,15 +138,15 @@ can point to any element of the process queue. */
 	    }
 	    /* p DNE */
 	    else{
-			return(NULL);
+		return(NULL);
 	    } 
 	}
 	/* multi-element queue case */
 	else{
 		/* tail is the node to remove */ 
 	  	if(*tp == p){
-	    	*tp = (*tp)->p_prev;
-	    	return(removeProcQ(tp));
+	    		*tp = (*tp)->p_prev;
+	    		return(removeProcQ(tp));
 		}
 		/* remove some internal node */
 	  	else{
@@ -155,7 +155,7 @@ can point to any element of the process queue. */
 			while(!at_tail){
 				if(current_elem == p){
 				  pcb_PTR temp = current_elem->p_prev;
-				  removeProcQ(&temp);
+				  return(removeProcQ(&temp));
 				}
 				else{
 					current_elem = current_elem->p_next;
@@ -208,11 +208,16 @@ void insertChild(pcb_PTR prnt, pcb_PTR p)
 to by prnt. */
 {
 	p->p_prnt = prnt; 				/* assign p's prnt to be prnt*/
-	p->p_sib_next = prnt->p_child; 	/* assign p's next sib to be prnt's child */
-	prnt->p_child->p_sib_prev = p;	/* assign the prnt's child's prev sib to be p */
-	prnt->p_child = p;				/* assign prnt's child to be p*/
-
-
+	/* first child case */
+	if(emptyChild(prnt)){
+		prnt->p_child = p;
+	}
+	/* not first child case */
+	else {
+		p->p_sib_next = prnt->p_child; 	/* assign p's next sib to be prnt's child */
+		prnt->p_child->p_sib_prev = p;	/* assign the prnt's child's prev sib to be p */
+		prnt->p_child = p;				/* assign prnt's child to be p*/
+	}
 }
 
 pcb_PTR removeChild(pcb_PTR p)
@@ -222,6 +227,11 @@ Otherwise, return a pointer to this removed first child ProcBlk. */
 {
 	if(emptyChild(p)){
 		return(NULL);
+	}
+	else if(p->p_child->p_sib_next == NULL && p->p_child->p_sib_prev == NULL){
+		pcb_PTR child = p->p_child;
+		p->p_child = NULL;
+		return(child);
 	}
 	else {
 	  	pcb_PTR child = p->p_child;
@@ -258,8 +268,13 @@ child of its parent. */
 			while(!done){
 				if(current_child == p){
 					/* remove */
-					current_child->p_sib_prev->p_sib_next = current_child->p_sib_next;
-					current_child->p_sib_next->p_sib_prev = current_child->p_sib_prev;
+					if(p->p_sib_next == NULL){
+						p->p_sib_prev->p_sib_next = p->p_sib_next;
+					}
+					else {
+						p->p_sib_prev->p_sib_next = p->p_sib_next;
+						p->p_sib_next->p_sib_prev = p->p_sib_prev;
+					}
 					done = 1;
 				}
 				else{
