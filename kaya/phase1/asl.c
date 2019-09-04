@@ -41,13 +41,15 @@ static void freeSemd(semd_t* s)
 	semdFree_h = s;
 }
 
-	void initASL()
+void initASL()
 /* Initialize the semdFree list to contain all the elements of the array
 static semd t semdTable[MAXPROC]
 This method will be only called once during data structure initialization.
 */
 {
 	int i;
+	semd_t* dummy1;
+	semd_t* dummy2;
 	static semd_t semdTable[MAXPROC+2];
 
 	semdFree_h = NULL;
@@ -55,17 +57,13 @@ This method will be only called once during data structure initialization.
 	for(i=0; i < MAXPROC+2; i++){
 		freeSemd(&(semdTable[i]));
 	}
-	semd_t * dummy1 = allocSemd();
-	semd_t * dummy2 = allocSemd();
+	dummy1 = allocSemd();
+	dummy2 = allocSemd();
 	dummy1->s_semAdd= 0; /* will need to be a const at some point*/
-	dummy2->s_semAdd= 2147483647; /*same ^*/
+	dummy2->s_semAdd= NULL; /*2147483647;*/ /*same ^*/
 	dummy1->s_next= dummy2;
-	
-	
+	semd_h = dummy1;
 }
-
-
-
 
 int insertBlocked(int *semAdd, pcb_PTR p)
 /* Insert the ProcBlk pointed to by p at the tail of the process queue
@@ -92,8 +90,7 @@ semdFree list is empty, return TRUE. In all other cases return FALSE.
     if(temp2 == NULL)
       {
 	/*  error error error */
-	return 1;
-	  
+	return 1; 
       }
     else{
       temp2->s_semAdd =semAdd;
@@ -103,11 +100,8 @@ semdFree list is empty, return TRUE. In all other cases return FALSE.
       insertProcQ(&(temp2->s_procQ), p);
       p->p_semAdd=semAdd;
       return 0;
-      
     }
   }
-  
-
 }
 
 pcb_PTR removeBlocked(int *semAdd)
@@ -119,7 +113,7 @@ empty (emptyProcQ(s procq) is TRUE), remove the semaphore
 descriptor from the ASL and return it to the semdFree list. */
 {
   semd_t * temp= searchASL(semAdd);
-  if(*(temp ->s_next->s_semAdd) ==*semAdd)
+  if(temp ->s_next->s_semAdd ==semAdd)
     {
       pcb_PTR temp2 =removeProcQ(&(temp->s_next->s_procQ));
       if(emptyProcQ(&(*temp->s_next->s_procQ)))
