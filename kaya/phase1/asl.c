@@ -49,7 +49,16 @@ void initASL()
 static semd t semdTable[MAXPROC]
 This method will be only called once during data structure initialization.
 */
-{}
+{
+	int i;
+	static semd_t semdTable[MAXPROC];
+
+	semdFree_h = NULL;
+
+	for(i=0; i < MAXPROC; i++){
+		freeSemd(&(semdTable[i]));
+	}
+}
 
 static void freeSemd(semd_t* s)
 /* Insert the sema4 pointed to by s onto the semdFree list. */
@@ -72,8 +81,9 @@ element. */
 		semdFree_h = temp->s_next;
 		temp->s_next = NULL;
 		temp->s_semAdd = 0;
-		temp->s_procQ = mkEmptyProcQ();
+		temp->s_procQ = NULL;
 	}
+	return(temp);
 }
 
 static semd_t *searchASL(int *semAdd)
