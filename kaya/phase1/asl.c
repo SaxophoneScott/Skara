@@ -18,7 +18,35 @@ to semAdd, and s procq to mkEmptyProcQ()), and proceed as
 above. If a new semaphore descriptor needs to be allocated and the
 semdFree list is empty, return TRUE. In all other cases return FALSE.
 */
-{}
+{
+
+  semd_t * temp= searchASL(semAdd);
+  if(*(temp ->s_next->s_semAdd) ==*semAdd)
+    {
+      insertProcQ(&(temp->s_next->s_proc),p);
+      return 0;
+    }
+  else{
+    semd_t * temp2 = allocSemd();
+    if(*temp2 == NULL)
+      {
+	/*  error error error */
+	return 1;
+	  
+      }
+    else{
+      temp2->s_semAdd = SemAdd;
+      temp2->s_procQ = mkEmptyProcQ();
+      temp2->s_next= temp->s_next;
+      temp->s_next = temp2;
+      insertProcQ(&(temp2->s_procQ), p);
+      return 0;
+      
+    }
+  }
+  
+
+}
 
 pcb_PTR removeBlocked(int *semAdd)
 /* Search the ASL for a descriptor of this semaphore. If none is
@@ -27,7 +55,26 @@ from the process queue of the found semaphore descriptor and return
 a pointer to it. If the process queue for this semaphore becomes
 empty (emptyProcQ(s procq) is TRUE), remove the semaphore
 descriptor from the ASL and return it to the semdFree list. */
-{}
+{
+  semd_t * temp= searchASL(semAdd);
+  if(*(temp ->s_next->s_semAdd) ==*semAdd)
+    {
+      pcb_PTR temp2 =removeProcQ(&(temp->s_next->s_procQ));
+      if(emptyProcQ(&(temp->s_next->s_procQ)))
+	{
+	  semd_t * temp3 = temp->s_next;
+	  temp->s_next = temp->s_next->s_next;
+	  freeSemd(temp3);
+      	}
+      
+      return temp2;
+      
+    }
+  else
+    {
+      return NULL;
+    }
+}
 
 pcb_PTR outBlocked(pcb_PTR p)
 /* Remove the ProcBlk pointed to by p from the process queue associated
@@ -35,14 +82,50 @@ with p’s semaphore (p" p semAdd) on the ASL. If ProcBlk
 pointed to by p does not appear in the process queue associated with
 p’s semaphore, which is an error condition, return NULL; otherwise,
 return p. */
-{}
+{
+  semd_t * temp= searchASL(semAdd);
+  if(*(temp ->s_next->s_semAdd) ==*semAdd)
+    {
+      pcb_PTR temp2 = outProcQ(&(temp->s_next->s_procQ), p);
+      if(emptyProcQ(&temp->s_next->s_procQ))
+	{
+	  semd_t * temp3 = temp->next;
+	  temp->s_next = temp->s_next->s_next;
+	  freeSemd(temp3);
+	}
+
+      return temp2;
+      
+    }
+  else{
+    return NULL;
+}
 
 pcb_PTR headBlocked(int *semAdd)
 /* Return a pointer to the ProcBlk that is at the head of the process
 queue associated with the semaphore semAdd. Return NULL
 if semAdd is not found on the ASL or if the process queue associated
 with semAdd is empty. */
-{}
+{
+  /* take the node thats potentially before the semAdd, or where it would be in the list*/
+  semd_t * temp = searchASL(semAdd);
+  /* case 1 and 2 -> we found the semAdd in the ASL*/
+  if(*(temp->s_next) = *semAdd)
+    {
+      /* case 1 ->  empty proccess queue -> return null */
+      if(emptyProcQ(temp->s_next->s_procQ){
+	  return NULL;
+	}
+	/* case 2 -> theres a proccess queue, so we must return the pointer to the head*/
+	else {
+	  return temp->s_next->s_procQ->p_prev;
+        }
+    }
+      /*case 3-4 , The active sem is not on the list, so return null */
+      else{
+	return NULL;
+      }
+}
 
 void initASL()
 /* Initialize the semdFree list to contain all the elements of the array
