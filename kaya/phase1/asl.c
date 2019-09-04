@@ -29,7 +29,7 @@ static semd_t *searchASL(int *semAdd)
 {
 	semd_t* current = semd_h;
 	while(current->s_next->s_semAdd < semAdd){
-		current = current->s_next;
+	  current =current->s_next;
 	}
 	return current;
 }
@@ -48,13 +48,20 @@ This method will be only called once during data structure initialization.
 */
 {
 	int i;
-	static semd_t semdTable[MAXPROC];
+	static semd_t semdTable[MAXPROC+2];
 
 	semdFree_h = NULL;
 
-	for(i=0; i < MAXPROC; i++){
+	for(i=0; i < MAXPROC+2; i++){
 		freeSemd(&(semdTable[i]));
 	}
+	semd_t * dummy1 = allocSemd();
+	semd_t * dummy2 = allocSemd();
+	dummy1->s_semAdd= 0; /* will need to be a const at some point*/
+	dummy2->s_semAdd= 2147483647; /*same ^*/
+	dummy1->s_next= dummy2;
+	
+	
 }
 
 
@@ -77,6 +84,7 @@ semdFree list is empty, return TRUE. In all other cases return FALSE.
   if(temp ->s_next->s_semAdd==semAdd)
     {
       insertProcQ(&(temp->s_next->s_procQ),p);
+      p->p_semAdd= semAdd;
       return 0;
     }
   else{
@@ -93,6 +101,7 @@ semdFree list is empty, return TRUE. In all other cases return FALSE.
       temp2->s_next= temp->s_next;
       temp->s_next = temp2;
       insertProcQ(&(temp2->s_procQ), p);
+      p->p_semAdd=semAdd;
       return 0;
       
     }
