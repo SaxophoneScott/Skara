@@ -1,6 +1,6 @@
 /****************************** ASL.c ******************************
 * written by Scott Harrington and Kara Schatz                      *
-* 						  	           *
+* 																   *
 * Purpose: Implements both an active and free semaphore list, and  *
 * contains functions necessary to manage both these lists.         *
 *                                                                  *
@@ -20,53 +20,9 @@
 
 HIDDEN semd_t *semd_h, *semdFree_h;
 /* prototypes for local funcs */
-HIDDEN semd_t* allocSemd()
-HIDDEN void freeSemd(semd_t* s)
-HIDDEN semd_t* searchASL(int* semAdd)
-
-static semd_t* allocSemd()
-/* Return NULL if the semdFree list is empty. Otherwise, remove
-an element from the semdFree list, provide initial values for ALL
-of the semd's fields, and then return a pointer to the removed
-element.
-*/
-{
-	semd_t* temp = semdFree_h;
-	/* empty list case */
-	if(temp == NULL){
-		return(NULL);
-	}
-	/* non-empty list case */
-	else {
-		semdFree_h = temp->s_next;
-		/* initialize all semd_t fields */
-		temp->s_next = NULL;
-		temp->s_semAdd = 0;
-		temp->s_procQ = NULL;
-	}
-	return(temp);
-}
-
-static void freeSemd(semd_t* s)
-/* Insert the semaphore pointed to by s onto the semdFree list. */
-{
-	s->s_next = semdFree_h;
-	semdFree_h = s;
-}
-
-static semd_t* searchASL(int *semAdd)
-/* Search the sorted ASL for the node before the semAdd given or for
-the node before where it would be if it were in the ASL. Returns this
-"parent"/"preceding" node
-*/
-{
-	semd_t* current = semd_h;
-	/* loop through the ASL until the next semAdd is larger than the one we want */
-	while(current->s_next->s_semAdd < semAdd){
-	  current = current->s_next;
-	}
-	return current;
-}
+HIDDEN semd_t* allocSemd();
+HIDDEN void freeSemd(semd_t* s);
+HIDDEN semd_t* searchASL(int* semAdd);
 
 void initASL()
 /* Initialize the semdFree list to contain all the elements of the array
@@ -110,27 +66,30 @@ semdFree list is empty, return TRUE. In all other cases return FALSE.
 	semd_t* temp = searchASL(semAdd);
 	/* semAdd is in ASL case */
 	if(temp->s_next->s_semAdd == semAdd){
-      		insertProcQ(&(temp->s_next->s_procQ),p);
-      		p->p_semAdd = semAdd;
-      		return(FALSE);
+		/* insert p into the procQ */
+  		insertProcQ(&(temp->s_next->s_procQ),p);
+  		p->p_semAdd = semAdd;
+  		return(FALSE);
   	}
 	/* semAdd is not in ASL case */
   	else{
-    		semd_t* temp2 = allocSemd();
+		semd_t* temp2 = allocSemd();
 		/* error: no semds to allocate case */
-    		if(temp2 == NULL){
+		if(temp2 == NULL){
 			return(TRUE);
-      		}
+  		}
 		/* semd was allocated without issue case */
-    		else{
-     			temp2->s_semAdd = semAdd;
-      			temp2->s_procQ = mkEmptyProcQ();
-      			temp2->s_next = temp->s_next;
-      			temp->s_next = temp2;
-      			insertProcQ(&(temp2->s_procQ), p);
-      			p->p_semAdd = semAdd;
-      			return(FALSE);
-    		}
+		else{
+			/* initialize semd fields appropriately */
+ 			temp2->s_semAdd = semAdd;
+  			temp2->s_procQ = mkEmptyProcQ();
+  			temp2->s_next = temp->s_next;
+  			temp->s_next = temp2;				/* add semd to ASL */
+  			/* insert p into the procQ */
+  			insertProcQ(&(temp2->s_procQ), p);
+  			p->p_semAdd = semAdd;
+  			return(FALSE);
+		}
   	}
 }
 
@@ -145,19 +104,20 @@ descriptor from the ASL and return it to the semdFree list. */
   	semd_t* temp = searchASL(semAdd);
 	/* semAdd is in ASL case */
   	if(temp->s_next->s_semAdd == semAdd){
-      		pcb_PTR temp2 = removeProcQ(&(temp->s_next->s_procQ));
+  		pcb_PTR temp2 = removeProcQ(&(temp->s_next->s_procQ));
 		/* the semd's procQ is now empty case */
-      		if(emptyProcQ(&(*temp->s_next->s_procQ))){
-	  		semd_t* temp3 = temp->s_next;
-	  		temp->s_next = temp->s_next->s_next;
-	  		freeSemd(temp3);
-      		}
-     		return(temp2);
-    	}
+  		if(emptyProcQ(&(*temp->s_next->s_procQ))){
+  			/* take semd off ASL and add to free list */
+			semd_t* temp3 = temp->s_next;
+			temp->s_next = temp->s_next->s_next;
+			freeSemd(temp3);
+  		}
+ 		return(temp2);
+    }
 	/* semAdd is not in ASL case */
   	else{
-      		return(NULL);
-    	}
+  		return(NULL);
+    }
 }
 
 pcb_PTR outBlocked(pcb_PTR p)
@@ -170,18 +130,19 @@ return p. */
   	semd_t* temp = searchASL(p->p_semAdd);
   	/* semAdd is in ASL case */ 
 	if(temp->s_next->s_semAdd == p->p_semAdd){
-      		pcb_PTR temp2 = outProcQ(&(temp->s_next->s_procQ), p);
-      		/* semd's procQ is not empty case */
+  		pcb_PTR temp2 = outProcQ(&(temp->s_next->s_procQ), p);
+  		/* semd's procQ is not empty case */
 		if(emptyProcQ(temp->s_next->s_procQ)){
+			/* take semd off ASL and add to free list */
 	  		semd_t* temp3 = temp->s_next;
 	  		temp->s_next = temp->s_next->s_next;
 	  		freeSemd(temp3);
 		}
-      		return(temp2);
-    	}
+  		return(temp2);
+    }
 	/* semAdd is not in ASL case */
   	else{
-    		return(NULL);
+    	return(NULL);
 	}
 }
 
@@ -195,9 +156,53 @@ with semAdd is empty. */
   	/* semAdd is in ASL case */
   	if(temp->s_next->s_semAdd == semAdd){
   		return(headProcQ(temp->s_next->s_procQ));	/* returns NULL if empty and head otherwise */
-       	}
-      	/* semAdd is not in ASL case */
-      	else{
+  	}
+  	/* semAdd is not in ASL case */
+  	else{
+  		return(NULL);
+  	}
+}
+
+HIDDEN semd_t* allocSemd()
+/* Return NULL if the semdFree list is empty. Otherwise, remove
+an element from the semdFree list, provide initial values for ALL
+of the semd's fields, and then return a pointer to the removed
+element.
+*/
+{
+	semd_t* temp = semdFree_h;
+	/* empty list case */
+	if(temp == NULL){
 		return(NULL);
-      	}
+	}
+	/* non-empty list case */
+	else {
+		semdFree_h = temp->s_next;			/* take temp off free list */
+		/* initialize all semd_t fields */
+		temp->s_next = NULL;
+		temp->s_semAdd = 0;
+		temp->s_procQ = NULL;
+	}
+	return(temp);
+}
+
+HIDDEN void freeSemd(semd_t* s)
+/* Insert the semaphore pointed to by s onto the semdFree list. */
+{
+	s->s_next = semdFree_h;
+	semdFree_h = s;
+}
+
+HIDDEN semd_t* searchASL(int *semAdd)
+/* Search the sorted ASL for the node before the semAdd given or for
+the node before where it would be if it were in the ASL. Returns this
+"parent"/"preceding" node
+*/
+{
+	semd_t* current = semd_h;
+	/* loop through the ASL until the next semAdd is larger than the one we want */
+	while(current->s_next->s_semAdd < semAdd){
+		current = current->s_next;
+	}
+	return current;
 }
