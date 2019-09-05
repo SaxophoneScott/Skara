@@ -179,14 +179,14 @@ can point to any element of the process queue. */
 			while(!at_tail){					/* loopy loop- searching for pcb p within the queue */
 				if(current_elem == p){
 				  pcb_PTR temp = current_elem->p_prev;		/* we found it in the loop*/
-				  return(removeProcQ(&temp));
+				  return(removeProcQ(&temp));			/* return  the removed internal node*/
 				}
 				else{
 					current_elem = current_elem->p_next;	/* set the elem to its next, to contiune looking for p */
 					if(current_elem == *tp){
 						at_tail = TRUE;			/* done looping, we didnt find it*/
 					}
-					else{
+					else{					/* we gotta keep going*/
 						at_tail = FALSE;			/* keep going */
 					}
 				}
@@ -216,7 +216,7 @@ queue. Return NULL if the process queue is empty. */
 
 
 
-/******************************************** Process Tree  *****************************************************************************/
+/***************************************** Process Tree  *************************************************************/
 
 int emptyChild(pcb_PTR p)
 /* Return TRUE if the ProcBlk pointed to by p has no children. Return FALSE otherwise. */
