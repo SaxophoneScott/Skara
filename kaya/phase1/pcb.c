@@ -131,7 +131,7 @@ was initially empty; otherwise return the pointer to the removed element. Update
 	/* single-element queue case */
 	else if(*tp == headProcQ(*tp)){
 	    pcb_PTR head = *tp;
-	    *tp = mkEmptyProcQ(); 			/* make the list empty */
+	    *tp = mkEmptyProcQ(); 			/* was last element, so it makes the list empty */
 	    return(head);
 	}
 	/* multi-element queue case */
@@ -179,15 +179,15 @@ can point to any element of the process queue. */
 			while(!at_tail){					/* loopy loop- searching for pcb p within the queue */
 				if(current_elem == p){
 				  pcb_PTR temp = current_elem->p_prev;		/* we found it in the loop*/
-				  return(removeProcQ(&temp));			/* return  the removed internal node*/
+				  return(removeProcQ(&temp));			
 				}
 				else{
 					current_elem = current_elem->p_next;	/* set the elem to its next, to contiune looking for p */
 					if(current_elem == *tp){
-						at_tail = TRUE;			/* done looping, we didnt find it*/
+						at_tail = TRUE;			
 					}
-					else{					/* we gotta keep going*/
-						at_tail = FALSE;			/* keep going */
+					else{					
+						at_tail = FALSE;			
 					}
 				}
 			}
@@ -235,7 +235,7 @@ void insertChild(pcb_PTR prnt, pcb_PTR p)
 /* Make the ProcBlk pointed to by p a child of the ProcBlk pointed
 to by prnt. */
 {
-	p->p_prnt = prnt; 				/* assign p's prnt to be prnt*/
+	p->p_prnt = prnt; 				
 	/* first child case */
 	if(emptyChild(prnt)){
 		prnt->p_child = p;
@@ -297,7 +297,7 @@ child of its parent. */
 				if(current_child == p){
 					/* remove case */
 					if(p->p_sib_next == NULL){
-						p->p_sib_prev->p_sib_next = p->p_sib_next;  /* setting p previous next to be ps next, in which case is null, so we are done after that*/
+						p->p_sib_prev->p_sib_next = p->p_sib_next;  /* setting p previous next to be p's next, in which case is null, so we are done after that*/
 					}
 					else {
 						p->p_sib_prev->p_sib_next = p->p_sib_next;  /* setting p previous next to be p's next, */
