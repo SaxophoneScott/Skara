@@ -105,17 +105,17 @@ tp to allow for the possible updating of the tail pointer as well. */
 {
   /* empty queue case */
 	if(emptyProcQ(*tp)){
-		*tp = p; 			/* set tail to new node */
-		p->p_prev = p;	 		/* assign p_prev to point to itself */
-		p->p_next = p; 			/* assign p_next to point to itself */
-	} 
+		*tp = p; 			/* make p the only  node */
+		p->p_prev = p;
+		p->p_next = p;
+	}
     /* non-empty queue case */
     else {
 		p->p_next = (*tp)->p_next; 	/* assign p's next to be current tail's next */
 		(*tp)->p_next->p_prev = p;	/* assign head's prev to be p */
 		p->p_prev = *tp; 		/* assign p's previous to be current tail */
 		(*tp)->p_next = p; 		/* assign current tail's next to be p */
-		*tp = p; 			/* change tail to be p */
+		*tp = p;
     }
 }
 
@@ -174,7 +174,7 @@ can point to any element of the process queue. */
 		}
 		/* remove some internal node case */
 	  	else{
-	  		int at_tail = 0; 					/* tracker to see if looped all the way back around to tail, i.e. p DNE */
+	  		int at_tail = FALSE; 					/* tracker to see if looped all the way back around to tail, i.e. p DNE */
 			pcb_PTR current_elem = *tp;
 			while(!at_tail){					/* loopy loop- searching for pcb p within the queue */
 				if(current_elem == p){
