@@ -1,12 +1,35 @@
-
+/************************************* PCB.C ********************************************************************
+ *  written by Scott Harrington and Kara Schatz 								*
+ *  														*
+ * Purpose: from pcb.e,creates a  Queue Manager for a proccess queue and Free					*
+ * Pcb list, and the proccess tree. 										*
+ *														*
+ *  Process Queue - circular, doubly linked list with a pointer to the tail of 					*
+ *  of PCBs that are in use. FIFO										*
+ * 														*
+ *  Free List- circular, doubly linnked list with a pointer to the tail of free					*
+ *  PCBS. FIFO													*
+ * 														*
+ *  Proccess Tree- each parent points to the child, where the child points to the siblings, which are		*
+ *   a null terminated stack.											*
+ *  														*
+ *  														*
+ *														*
+ * includes const, types, pcb.e, 										*
+ ****************************************************************************************************************/
 #include "../h/const.h"
 #include "../h/types.h"
 #include "../e/pcb.e"
 
+
+
+
+
+/******************************  Process Queue *****************************************************************/
 HIDDEN pcb_PTR pcbList_h;
 
 /* manage "free" list of PCBs */
-void freePcb(pcb_t *p)
+void freePcb(pcb_PTR p)
 /* Insert the element pointed to by p onto the pcbFree list. */
 {
 	insertProcQ(&pcbList_h, p);
@@ -44,7 +67,8 @@ gets reallocated. */
 void initPcbs()
 /* Initialize the pcbFree list to contain all the elements of the
 static array of MAXPROC ProcBlk’s. This method will be called
-only once during data structure initialization. */
+only once during data structure initialization.
+ */
 {
 	int i;
 	static pcb_t procTable[MAXPROC];
@@ -81,17 +105,17 @@ tp to allow for the possible updating of the tail pointer as well. */
 {
   /* empty queue case */
 	if(emptyProcQ(*tp)){
-		*tp = p; 		/* set tail to new node */
-		p->p_prev = p; 	/* assign p_prev to point to itself */
-		p->p_next = p; 	/* assign p_next to point to itself */
+		*tp = p; 			/* set tail to new node */
+		p->p_prev = p;	 		/* assign p_prev to point to itself */
+		p->p_next = p; 			/* assign p_next to point to itself */
 	} 
     /* non-empty queue case */
     else {
 		p->p_next = (*tp)->p_next; 	/* assign p's next to be current tail's next */
 		(*tp)->p_next->p_prev = p;	/* assign head's prev to be p */
-		p->p_prev = *tp; 			/* assign p's previous to be current tail */
-		(*tp)->p_next = p; 			/* assign current tail's next to be p */
-		*tp = p; 					/* change tail to be p */
+		p->p_prev = *tp; 		/* assign p's previous to be current tail */
+		(*tp)->p_next = p; 		/* assign current tail's next to be p */
+		*tp = p; 			/* change tail to be p */
     }
 }
 
@@ -107,14 +131,14 @@ was initially empty; otherwise return the pointer to the removed element. Update
 	/* single-element queue case */
 	else if(*tp == headProcQ(*tp)){
 	    pcb_PTR head = *tp;
-	    *tp = mkEmptyProcQ(); 		/* make the list empty */
+	    *tp = mkEmptyProcQ(); 			/* make the list empty */
 	    return(head);
 	}
 	/* multi-element queue case */
 	else{
 		pcb_PTR head = (*tp)->p_next;
-		(*tp)->p_next = (*tp)->p_next->p_next; 	/*assign tail's next to be new head (what was the second elem) */
-		(*tp)->p_next->p_prev=*tp; 				/*assign new head's prev to the tail*/
+		(*tp)->p_next = (*tp)->p_next->p_next; 	/* assign tail's next to be new head (what was the second elem) */
+		(*tp)->p_next->p_prev=*tp; 		/* assign new head's prev to the tail*/
 		return(head);
 	}
 }
@@ -132,42 +156,42 @@ can point to any element of the process queue. */
 	}
 	/* single-element queue case */
 	else if(*tp == headProcQ(*tp)){
-	    /* tail is the node to remove */
+	    /* tail is the node to remove case */
 	    if(*tp == p){
 	    	return(removeProcQ(tp));
 	    }
-	    /* p DNE */
+	    /* p DNE case*/
 	    else{
 		return(NULL);
 	    } 
 	}
 	/* multi-element queue case */
 	else{
-		/* tail is the node to remove */ 
+		/* tail is the node to remove case */ 
 	  	if(*tp == p){
 	    		*tp = (*tp)->p_prev;
 	    		return(removeProcQ(tp));
 		}
-		/* remove some internal node */
+		/* remove some internal node case */
 	  	else{
-	  		int at_tail = 0; 	/* tracker to see if looped all the way back around to tail, i.e. p DNE */
+	  		int at_tail = 0; 					/* tracker to see if looped all the way back around to tail, i.e. p DNE */
 			pcb_PTR current_elem = *tp;
-			while(!at_tail){
+			while(!at_tail){					/* loopy loop- searching for pcb p within the queue */
 				if(current_elem == p){
-				  pcb_PTR temp = current_elem->p_prev;
+				  pcb_PTR temp = current_elem->p_prev;		/* we found it in the loop*/
 				  return(removeProcQ(&temp));
 				}
 				else{
-					current_elem = current_elem->p_next;
+					current_elem = current_elem->p_next;	/* set the elem to its next, to contiune looking for p */
 					if(current_elem == *tp){
-						at_tail = 1;
+						at_tail = TRUE;			/* done looping, we didnt find it*/
 					}
 					else{
-						at_tail = 0;
+						at_tail = FALSE;			/* keep going */
 					}
 				}
 			}
-			/* looped through entire queue, so p DNE */
+			/* looped through entire queue, so p DNE  case*/
 			return(NULL);
 	  	}
 	}
@@ -188,18 +212,22 @@ queue. Return NULL if the process queue is empty. */
 	}
 }
 
-/* parent/child manager */
+ /* end of  process queue*/
+
+
+
+/******************************************** Process Tree  *****************************************************************************/
 
 int emptyChild(pcb_PTR p)
 /* Return TRUE if the ProcBlk pointed to by p has no children. Return FALSE otherwise. */
 {
 	/* children DNE */
 	if(p->p_child == NULL){
-		return 1;
+		return TRUE;
 	}
 	/* children exist */
 	else{
-		return 0;
+		return FALSE;
 	}
 }
 
@@ -212,11 +240,11 @@ to by prnt. */
 	if(emptyChild(prnt)){
 		prnt->p_child = p;
 	}
-	/* not first child case */
-	else {
-		p->p_sib_next = prnt->p_child; 	/* assign p's next sib to be prnt's child */
-		prnt->p_child->p_sib_prev = p;	/* assign the prnt's child's prev sib to be p */
-		prnt->p_child = p;				/* assign prnt's child to be p*/
+	
+	else { /* not first child case */
+		p->p_sib_next = prnt->p_child; 		/* assign p's next sib to be prnt's child */
+		prnt->p_child->p_sib_prev = p;		/* assign the prnt's child's prev sib to be p */
+		prnt->p_child = p;			/* assign prnt's child to be p*/
 	}
 }
 
@@ -257,28 +285,28 @@ child of its parent. */
 	/* parent exists */
 	else{
 		pcb_PTR parent = p->p_prnt;
-		/* want to remove 1st child */
+		/* want to remove 1st child case*/
 		if(parent->p_child == p){
 			return(removeChild(parent));
 		}
-		/* want to remove internal child */
+		/* want to remove internal child case*/
 		else{
-			int done = 0;
+			int done = FALSE;
 			pcb_PTR current_child = parent->p_child;
 			while(!done){
 				if(current_child == p){
-					/* remove */
+					/* remove case */
 					if(p->p_sib_next == NULL){
-						p->p_sib_prev->p_sib_next = p->p_sib_next;
+						p->p_sib_prev->p_sib_next = p->p_sib_next;  /* setting p previous next to be ps next, in which case is null, so we are done after that*/
 					}
 					else {
-						p->p_sib_prev->p_sib_next = p->p_sib_next;
-						p->p_sib_next->p_sib_prev = p->p_sib_prev;
+						p->p_sib_prev->p_sib_next = p->p_sib_next;  /* setting p previous next to be p's next, */
+						p->p_sib_next->p_sib_prev = p->p_sib_prev;  /* setting p next previous to be p's  previous, getting rid of the middling node */
 					}
-					done = 1;
+					done = TRUE; 
 				}
 				else{
-					current_child = current_child->p_sib_next;
+					current_child = current_child->p_sib_next;	    /*if we we didnt find it, continue looping  */
 				}
 			}
 			return(p);
