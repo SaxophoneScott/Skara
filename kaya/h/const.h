@@ -17,19 +17,29 @@
 
 
 /* timer, timescale, TOD-LO and other bus regs */
-#define RAMBASEADDR	0x10000000
-#define TODLOADDR	0x1000001C
-#define INTERVALTMR	0x10000020	
+#define RAMBASEADDR		0x10000000
+#define TODLOADDR		0x1000001C
+#define INTERVALTMR		0x10000020	
 #define TIMESCALEADDR	0x10000024
+
+/* old and new processor state areas */
+#define SYSCALLNEWAREA			0x200003D4
+#define SYSCALLOLDAREA			0x20000348
+#define PROGRAMTRAPNEWAREA		0x200002BC
+#define PROGRAMTRAPOLDAREA		0x20000230
+#define TLBMANAGEMENTNEWAREA	0x200001A4
+#define TLBMANAGEMENTOLDAREA	0x20000118
+#define INTERRUPTNEWAREA		0x2000008C
+#define INTERRUPTOLDAREA		0x20000000
 
 
 /* utility constants */
-#define	TRUE		1
-#define	FALSE		0
+#define	TRUE			1
+#define	FALSE			0
 #define ON              1
 #define OFF             0
-#define HIDDEN		static
-#define EOS		'\0'
+#define HIDDEN			static
+#define EOS				'\0'
 
 #define NULL ((void *)0xFFFFFFFF)
 
@@ -74,7 +84,7 @@
 
 /* device common COMMAND codes */
 #define RESET		0
-#define ACK		1
+#define ACK			1
 
 /* operations */
 #define	MIN(A,B)	((A) < (B) ? A : B)
