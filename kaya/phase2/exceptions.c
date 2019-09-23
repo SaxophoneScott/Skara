@@ -88,7 +88,9 @@ freePcb for each one */
 	Scheduler();
 
 }
-
+/* helper function for TerminateProcess() 
+	uses recurision to kill all pf the children and their children  and thier children etc 
+	of a pcb p*/
 void HoneyIKilledTheKids(pcb_PTR p)
 {
 	while(!(emptyChild(p)))
