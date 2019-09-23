@@ -6,7 +6,7 @@ int proccessCount;
 int softBlockCount;
 pcb_PTR currentProcess;
 pcd_PTR readyQ;
-/* CPU_t processStartTime */
+/* cpu_t processStartTime */
 
 void main(){
 	/* populate 4 new areas in low memory:
@@ -17,6 +17,8 @@ void main(){
 	devregarea_t* busRegArea = (devregarea_t*) RAMBASEADDR; /* rambase address */
 	memaddr ramtop = busRegArea->rambase + busRegArea->ramsize; /* ramtop address */
 
+	unsigned int statusRegValue = ALLOFF | VMOFF | KERNELON | INTERRUPTSMASKED; /* represents VM off, interrupts masked, and kernel mode on */
+
 	/* initialize syscall new area */
 	/* set PC to syscallHandler */
 	state_t* syscallNew = (state_t*) SYSCALLNEWAREA;
@@ -25,7 +27,7 @@ void main(){
 	/* set stack pointer to last page of physcial memory (RAMTOP) */
 	syscallNew->s_sp = ramtop;
 	/* set status reg: VM off, Interrupts masked, Supervisor mode on */
-	syscallNew->s_status = ???
+	syscallNew->s_status = statusRegValue;
 
 	/* initialize programTrap new area */
 	/* set PC */
@@ -35,6 +37,7 @@ void main(){
 	/* set stack pointer */
 	programTrapNew->s_sp = ramtop;
 	/* set status */
+	programTrapNew->s_status = statusRegValue;
 
 	/* initialize TLBManagement new area */
 	/* set PC */
@@ -44,6 +47,7 @@ void main(){
 	/* set stack pointer */
 	TLBMgmtNew->s_sp = ramtop;
 	/* set status */
+	TLBMgmtNew->s_status = statusRegValue;
 
 	/* initialize interrupt new area */
 	/* set PC */
@@ -53,6 +57,7 @@ void main(){
 	/* set stack pointer */
 	interruptNew->s_sp = ramtop;
 	/* set status */
+	interruptNew->s_status = statusRegValue;
 
 	/* initialize data structures */
 	initPcbs();
@@ -69,6 +74,9 @@ void main(){
 		set stack pointer to penultimate page of physical memory
 		set PC to p2test
 		set status: VM off, Interrupts enabled/unmasked, Supervisor mode on */
+	initialProc->p_s->s_sp = ramtop - PAGESIZE;
+	initialProc->p_s->s_pc = p2test; /* change based on name */
+	initialProc->p_s->s_status = ALLOFF | VMOFF | INTERRUPTSUNMASKED | KERNELON;
 
 	processCount++;
 
