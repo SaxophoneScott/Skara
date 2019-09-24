@@ -69,6 +69,13 @@ void main(){
 	currentProcess = NULL;
 	readyQ = mkEmptyProcQ();
 
+	/* initialize nucleus maintained semaphores */
+	/* DO THIS STILL */
+	static int semaphoreArray[8+1];
+	for(int i=0; i < 8+1; i++){
+		semaphoreArray[i] = 0;
+	}
+
 	pcb_PTR initialProc = allocPcb(); /* initial process */
 	/* initialize its state: 
 		set stack pointer to penultimate page of physical memory

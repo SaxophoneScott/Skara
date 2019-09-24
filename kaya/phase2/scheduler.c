@@ -31,5 +31,5 @@ void scheduler():
 		setTIMER(5000); /* ?????? */
 		/* store off TOD */
 		currentProcess->p_startTime = STCK(TODLOADDR);
-		LDST(&(currentProcess->p_S)); /* context switch! */
+		LDST(&(currentProcess->p_s)); /* context switch! */
 	}
