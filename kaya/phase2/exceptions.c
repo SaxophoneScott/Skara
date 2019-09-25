@@ -24,13 +24,17 @@ void syscallHandler(){
 			CreateProcess(syscallOld);
 		case TERMINATEPROCESS:
 		/* blocking */
+			TerminateProcess();
 		case VERHOGEN:
 		/* non blocking*/
+			Verhogen(syscallOld);
 		case PASSEREN:
 		/* sometimes blocking*/
+			Passeren(syscallOld);
 		case EXCEPTIONSTATEVEC:
 		/* non blocking*/
 		/* pass up or die? */
+		 	ExceptionStateVec(syscallOld);
 		case GETCPUTTIME: 
 		/* non blocking*/
 		case WAITFORCLOCK:
@@ -39,13 +43,19 @@ void syscallHandler(){
 		/* blocking */
 		default:
 		/* pass up or die*/
-			PassUporDie();
+			PassUporDie(syscallOld, SYCALLEXCEPTION);
 	}
 }
 
-void programTrapHandler(){}
+void programTrapHandler()
+{
+	PassUpOrDie(syscallOld, PROGRAMTRAPEXCEPTION);
+}
 
-void TLBManagementHandler(){}
+void TLBManagementHandler()
+{
+	PassUpOrDie(syscallOld, TLBEXCEPTION);
+}
 
 
 /* SYS1 */
@@ -104,20 +114,53 @@ void HoneyIKilledTheKids(pcb_PTR p)
 	}
 }
 /*SYS3 */
-void Verhogen()
+void Verhogen(state_t * syscallOld)
 {
 	/* increments the semaphore */
-
+	memaddr semaddr = syscallOld->s_a1;
+	(*semaddr)++; 
+	if(*(semaddr) <= 0)
+	{
+		pcb_PTR p=removeBlocked(semaddr);
+		insertProcQ(&readyQ, p);	
+	}
+	LoadState(syscallOld);
 }
 /*SYS4*/
 void Passeren()
 {
 	/* decrements the semaphore */
-
+	memaddr semaddr = syscallOld->s_a1;
+	(*semaddr)--; 
+	if(*(semaddr) <0)
+	{
+		/* block the proccess */
+		BlockHelperFunction(syscallOld, semaddr);
+	}
+	else
+	{
+		/* otherwise continue operation */
+		LoadState(syscallOld);
+	}
 }
 /*SYS5*/
-void ExceptionStateVec()
+void ExceptionStateVec(state_t * syscallOld)
 {
+	unsigned int exceptionType = syscallOld->s_a1;
+	memaddr oldState = syscallOld->s_a2;
+	memaddr newState = syscallOld->s_a3;
+
+	if(currentProcess->oldAreas[exceptionType]==NULL && currentProcess->newAreas[exceptionType]==NULL)
+	{
+		/* hasn't been requested yets :) */
+		currentProcess->oldAreas[exceptionType]=oldState;
+		currentProccess->newAreas[exceptionType]=newState;
+	}
+	else
+	{
+		/* it was already requested :( */
+		TerminateProcess();
+	}
 
 }
 /*SYS6*/
@@ -141,21 +184,20 @@ void LoadState(memaddr processState)
 		LDST(processState);
 }
 /* helper function to localize blocking */
-void BlockHelperFunction()
+void BlockHelperFunction(state_t * syscallOld, memaddr semaddr)
 /* insertBlock(SemADD, current)
 	softBlockedCount++;
-	Schedular() */
+	Scheduler() */
 {
-
+	insertBlocked(semaddr, currentProcess);
+	softBlockedCount++;
+	Scheduler();
 }
 
 /* instruction is greater than 8 */
 /* sys5 */
-void PassUpOrDie(state_t* syscallOld)
+void PassUpOrDie(state_t * syscallOld, int exceptionType)
 {
-	unsigned int exceptionType = syscallOld->s_a1;
-	unsigned int oldState = syscallOld->s_a2;
-	unsigned int newState = syscallOld->s_a3;
 	/* has a sys5 for that trap type been called?
 		if that area == null, then no:
 			terminate the process and all its offspring
@@ -164,12 +206,11 @@ void PassUpOrDie(state_t* syscallOld)
 			LDST(current->newxxx) */
 	if((currentProcess->oldAreas[exceptionType] == NULL) || (currentProcess->newAreas[exceptionType] == NULL)){
 		/* TERMINATE BC SYS 5 WASNT CALLED */
+		TerminateProcess();
 	} else {
-		if(*oldState != NULL){
-			/* terminate bc we already had this exception */
-		} else {
-			*(currentProcess->oldAreas[exceptionType]) = 
+			*(currentProcess->oldAreas[exceptionType]) = *(syscallOld);
+			LoadState(currentProcess->newAreas[exceptionType]);
 		}
 	}
-}
+
 
