@@ -30,6 +30,7 @@ void syscallHandler(){
 		/* sometimes blocking*/
 		case EXCEPTIONSTATEVEC:
 		/* non blocking*/
+		/* pass up or die? */
 		case GETCPUTTIME: 
 		/* non blocking*/
 		case WAITFORCLOCK:
@@ -74,7 +75,7 @@ void CreateProcess (state_t* syscallOld)
 	LoadState(syscallOld);
 }
 /* SYS2 */
-void TerminateProcess( )
+void TerminateProcess()
 /* Kill the Process */
 /* remove from the proqQ
  while (!emptyChild(currentProcess)) -> removeChild(currentProccess) 
@@ -105,11 +106,13 @@ void HoneyIKilledTheKids(pcb_PTR p)
 /*SYS3 */
 void Verhogen()
 {
+	/* increments the semaphore */
 
 }
 /*SYS4*/
 void Passeren()
 {
+	/* decrements the semaphore */
 
 }
 /*SYS5*/
@@ -147,8 +150,26 @@ void BlockHelperFunction()
 }
 
 /* instruction is greater than 8 */
-void PassUpOrDie()
+/* sys5 */
+void PassUpOrDie(state_t* syscallOld)
 {
-
+	unsigned int exceptionType = syscallOld->s_a1;
+	unsigned int oldState = syscallOld->s_a2;
+	unsigned int newState = syscallOld->s_a3;
+	/* has a sys5 for that trap type been called?
+		if that area == null, then no:
+			terminate the process and all its offspring
+		yes:
+			copy state that caused exception (oldxxx - system level) to the location specified in the PCB
+			LDST(current->newxxx) */
+	if((currentProcess->oldAreas[exceptionType] == NULL) || (currentProcess->newAreas[exceptionType] == NULL)){
+		/* TERMINATE BC SYS 5 WASNT CALLED */
+	} else {
+		if(*oldState != NULL){
+			/* terminate bc we already had this exception */
+		} else {
+			*(currentProcess->oldAreas[exceptionType]) = 
+		}
+	}
 }
 

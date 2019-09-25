@@ -6,6 +6,9 @@ int proccessCount;
 int softBlockCount;
 pcb_PTR currentProcess;
 pcd_PTR readyQ;
+/* the order of devices on the array is as follows: 
+	[timer, 8 disk devices, 8 tape devices, 8 network adapters, 8 printer devices, 8 terminal devices] */
+int semaphoreArray[SEMCOUNT]; 
 /* cpu_t processStartTime */
 
 void main(){
@@ -70,9 +73,7 @@ void main(){
 	readyQ = mkEmptyProcQ();
 
 	/* initialize nucleus maintained semaphores */
-	/* DO THIS STILL */
-	static int semaphoreArray[8+1];
-	for(int i=0; i < 8+1; i++){
+	for(int i=0; i < SEMCOUNT; i++){
 		semaphoreArray[i] = 0;
 	}
 

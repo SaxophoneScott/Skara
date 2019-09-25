@@ -45,6 +45,7 @@ important that no previous value persist in a ProcBlk when it
 gets reallocated. */
 {
 	pcb_PTR elem;
+	int i;
 	/* empty list case */
 	if(emptyProcQ(pcbList_h)){
 		return(NULL);
@@ -60,6 +61,12 @@ gets reallocated. */
 		elem->p_sib_prev = NULL;
 		elem->p_sib_next = NULL;
 		elem->p_semAdd = NULL;
+		elem->p_startTime = NULL;
+		elem->p_totalTime = NULL;
+		for(i = 0; i < NUMEXCEPTIONTYPES; i++){
+			elem->oldAreas[i] = NULL;
+			elem->newAreas[i] = NULL;
+		}
 	}
 	return(elem);
 }

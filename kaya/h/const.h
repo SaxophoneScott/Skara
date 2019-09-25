@@ -18,7 +18,7 @@
 
 /* timer, timescale, TOD-LO and other bus regs */
 #define RAMBASEADDR		0x10000000
-#define TODLOADDR		0x1000001C
+#define TODLOADDR		0x1000001C /* C or c? */
 #define INTERVALTMR		0x10000020	
 #define TIMESCALEADDR	0x10000024
 
@@ -32,6 +32,43 @@
 #define INTERRUPTNEWAREA		0x2000008C
 #define INTERRUPTOLDAREA		0x20000000
 
+/* values for controlling bits in the status register */
+#define ALLOFF					0x00000000
+#define VMON					0x01000000
+#define VMOFF					0x00000000
+#define KERNELON				0x00000000
+#define KERNELOFF				0x00000008
+#define INTERRUPTSMASKED 		0x00000000
+#define INTERRUPTSUNMASKED		0x00000004
+#define INTERRUPTMASK 			0x00000000 	/* change this later maybe */
+
+/* need one semaphore for each external device that is not terminal + 2 for each terminal device + 1 for the clock
+	external devices:
+		8 disk devices
+		8 tape devices
+		8 network adapters
+		8 printer devices
+		8 terminal devices
+	so 4*8 + 2*8 + 1 = 49 total semaphores 
+	The order of the semaphore array is as follows:	
+		[timer, 8 disk devices, 8 tape devices, 8 network adapters, 8 printer devices, 8 terminal devices] */
+#define SEMCOUNT 	49
+
+/* syscall services */
+#define CREATEPROCESS 		1
+#define TERMINATEPROCESS	2
+#define VERHOGEN			3
+#define PASSEREN			4
+#define EXCEPTIONSTATEVEC	5
+#define	GETCPUTIME			6
+#define WAITFORCLOCK		7
+#define WAITFORIO			8
+
+/* exception types */
+#define TLBEXCEPTION			0
+#define PROGRAMTRAPEXCEPTION	1
+#define SYSCALLEXCEPTIONS		2
+#define NUMEXCEPTIONTYPES		3
 
 /* utility constants */
 #define	TRUE			1
