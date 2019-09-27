@@ -40,7 +40,9 @@
 #define KERNELOFF				0x00000008
 #define INTERRUPTSMASKED 		0x00000000
 #define INTERRUPTSUNMASKED		0x00000004
-#define INTERRUPTMASK 			0x00000000 	/* change this later maybe */
+#define CURRINTERRUPTSUNMASKED	0x00000001
+#define INTERRUPTMASKOFF 		0x00000000 	/* change this later maybe */
+#define INTERRUPTMASKON			0x0000FF00
 
 /* need one semaphore for each external device that is not terminal + 2 for each terminal device + 1 for the clock
 	external devices:
@@ -67,7 +69,7 @@
 /* exception types */
 #define TLBEXCEPTION			0
 #define PROGRAMTRAPEXCEPTION	1
-#define SYSCALLEXCEPTIONS		2
+#define SYSCALLEXCEPTION		2
 #define NUMEXCEPTIONTYPES		3
 
 /* utility constants */

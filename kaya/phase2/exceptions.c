@@ -24,7 +24,7 @@ void syscallHandler(){
 			CreateProcess(syscallOld);
 		case TERMINATEPROCESS:
 		/* blocking */
-			TerminateProcess();
+			TerminateProcess(currentProcess);
 		case VERHOGEN:
 		/* non blocking*/
 			Verhogen(syscallOld);
@@ -85,17 +85,18 @@ void CreateProcess (state_t* syscallOld)
 	LoadState(syscallOld);
 }
 /* SYS2 */
-void TerminateProcess()
+void TerminateProcess(pcb_PTR process)
 /* Kill the Process */
 /* remove from the proqQ
  while (!emptyChild(currentProcess)) -> removeChild(currentProccess) 
  proccessCount -- for each child removed
 freePcb for each one */
 {
-	HoneyIKilledTheKids(currentProcess);
-	outProcQ(&readyQ, currentProcess);
+	HoneyIKilledTheKids(process);
+	outProcQ(&readyQ, process);
 	processCount--;
-	freePcb(currentProcess);
+	IncrementProcessTime(process);
+	freePcb(process);
 	Scheduler();
 
 }
@@ -127,7 +128,7 @@ void Verhogen(state_t * syscallOld)
 	LoadState(syscallOld);
 }
 /*SYS4*/
-void Passeren()
+void Passeren(state_t* syscallOld)
 {
 	/* decrements the semaphore */
 	memaddr semaddr = syscallOld->s_a1;
@@ -135,7 +136,7 @@ void Passeren()
 	if(*(semaddr) <0)
 	{
 		/* block the proccess */
-		BlockHelperFunction(syscallOld, semaddr);
+		BlockHelperFunction(syscallOld, semaddr, currentProcess);
 	}
 	else
 	{
@@ -159,12 +160,12 @@ void ExceptionStateVec(state_t * syscallOld)
 	else
 	{
 		/* it was already requested :( */
-		TerminateProcess();
+		TerminateProcess(currentProcess);
 	}
 
 }
 /*SYS6*/
-void GetCpuTime ()
+void GetCpuTime()
 {
 
 }
@@ -184,12 +185,13 @@ void LoadState(memaddr processState)
 		LDST(processState);
 }
 /* helper function to localize blocking */
-void BlockHelperFunction(state_t * syscallOld, memaddr semaddr)
+void BlockHelperFunction(state_t * syscallOld, memaddr semaddr, pcb_PTR process)
 /* insertBlock(SemADD, current)
 	softBlockedCount++;
 	Scheduler() */
 {
-	insertBlocked(semaddr, currentProcess);
+	IncrementProcessTime(process);
+	insertBlocked(semaddr, process);
 	softBlockedCount++;
 	Scheduler();
 }
@@ -206,11 +208,16 @@ void PassUpOrDie(state_t * syscallOld, int exceptionType)
 			LDST(current->newxxx) */
 	if((currentProcess->oldAreas[exceptionType] == NULL) || (currentProcess->newAreas[exceptionType] == NULL)){
 		/* TERMINATE BC SYS 5 WASNT CALLED */
-		TerminateProcess();
+		TerminateProcess(currentProcess);
 	} else {
 			*(currentProcess->oldAreas[exceptionType]) = *(syscallOld);
 			LoadState(currentProcess->newAreas[exceptionType]);
 		}
 	}
 
-
+void IncrementProcessTime(pcb_PTR process)
+{
+	cpu_t endTime;
+	STCK(endTime);
+	process->p_totalTime += (endTime - processStartTime);
+}

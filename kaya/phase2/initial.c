@@ -9,7 +9,7 @@ pcd_PTR readyQ;
 /* the order of devices on the array is as follows: 
 	[timer, 8 disk devices, 8 tape devices, 8 network adapters, 8 printer devices, 8 terminal devices] */
 int semaphoreArray[SEMCOUNT]; 
-/* cpu_t processStartTime */
+cpu_t processStartTime;
 
 void main(){
 	/* populate 4 new areas in low memory:
@@ -30,7 +30,7 @@ void main(){
 	/* set stack pointer to last page of physcial memory (RAMTOP) */
 	syscallNew->s_sp = ramtop;
 	/* set status reg: VM off, Interrupts masked, Supervisor mode on */
-	syscallNew->s_status = statusRegValue;
+	syscallNew->s_status = statusRegValue; /* setStatus?? */
 
 	/* initialize programTrap new area */
 	/* set PC */
@@ -71,6 +71,7 @@ void main(){
 	softBlockCount = 0;
 	currentProcess = NULL;
 	readyQ = mkEmptyProcQ();
+	processStartTime = NULL;
 
 	/* initialize nucleus maintained semaphores */
 	for(int i=0; i < SEMCOUNT; i++){
