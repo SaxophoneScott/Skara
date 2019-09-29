@@ -1,77 +1,92 @@
 void syscallHandler(){
-	pc=pc+4;
-	state_t* syscallOld = (state_t*) SYSCALLOLDAREA;
+	state_PTR syscallOld = (state_PTR) SYSCALLOLDAREA;
+	state_PTR programTrapOld = (state_PTR) PROGRAMTRAPOLDAREA;
+	syscallOld->s_pc += 4;
 	unsigned int l_a0 = syscallOld -> s_a0;
-	/*unsigned int l_a1 = syscallOld -> s_a1;
+	unsigned int l_a1 = syscallOld -> s_a1;
 	unsigned int l_a2 = syscallOld -> s_a2;
 	unsigned int l_a3 = syscallOld -> s_a3;
-	unsigned int l_v0;
+	/*unsigned int l_v0;
 	unsigned int l_v1;*/
-	/* if l_a0 <= 8 and l_a0 >= 1 and kup =!0 
-	prgram trap
-	copy state from oldSys into  OldProgram
-	change old program cause to priviledged instruction issue (RI) (10)
-	Call myProgramTrap()
-
-	else :
-
-	*/ 
-	switch(a0){
-		case CREATEPROCESS:
-			/* a1: has physical address of processor state area */
-			/* errors go in v0 as -1 or 0 otherwise */
+	int userMode = currentProcess->p_s->s_status & KERNELMODEOFF
+	if(l_a0 > 8 || (!userMode && 1 <= l_a0 && l_a0 <= 8))
+	{
+		switch(l_a0){
+			case CREATEPROCESS:
+				/* a1: has physical address of processor state area */
+				/* errors go in v0 as -1 or 0 otherwise */
+				/* non blocking*/
+				CreateProcess(syscallOld, l_a1);
+			case TERMINATEPROCESS:
+			/* blocking */
+				TerminateProcess(syscallOld, currentProcess);
+			case VERHOGEN:
 			/* non blocking*/
-			CreateProcess(syscallOld);
-		case TERMINATEPROCESS:
-		/* blocking */
-			TerminateProcess(currentProcess);
-		case VERHOGEN:
-		/* non blocking*/
-			Verhogen(syscallOld);
-		case PASSEREN:
-		/* sometimes blocking*/
-			Passeren(syscallOld);
-		case EXCEPTIONSTATEVEC:
-		/* non blocking*/
-		/* pass up or die? */
-		 	ExceptionStateVec(syscallOld);
-		case GETCPUTTIME: 
-		/* non blocking*/
-		case WAITFORCLOCK:
-		/* blocking*/
-		case WAITFORIO:
-		/* blocking */
-		default:
-		/* pass up or die*/
-			PassUporDie(syscallOld, SYCALLEXCEPTION);
+				Verhogen(syscallOld, l_a1);
+			case PASSEREN:
+			/* sometimes blocking*/
+				Passeren(syscallOld, l_a1);
+			case EXCEPTIONSTATEVEC:
+			/* non blocking*/
+			/* pass up or die? */
+			 	ExceptionStateVec(syscallOld, l_a1, l_a2, l_a3);
+			case GETCPUTTIME: 
+			/* non blocking*/
+				GetCpuTime(syscallOld);
+			case WAITFORCLOCK:
+			/* blocking*/
+				WaitForClock(syscallOld);
+			case WAITFORIO:
+			/* blocking */
+				WaitForIo(syscallOld, l_a1, l_a2, l_a3);
+			default:
+			/* pass up or die*/
+				PassUporDie(syscallOld, SYCALLEXCEPTION);
+		}
+	}
+	else
+	/* in user mode but made priveledged call */
+	{
+		/* if l_a0 <= 8 and l_a0 >= 1 and kup =!0 
+		prgram trap
+		copy state from oldSys into  OldProgram
+		change old program cause to priviledged instruction issue (RI) (10)
+		Call myProgramTrap() */
+		CopyState(programTrapOld, syscallOld);
+		programTrapOld->s_cause = ALLOFF | PRIVILEDGEDINSTR;
+		programTrapHandler();
 	}
 }
 
 void programTrapHandler()
 {
-	PassUpOrDie(syscallOld, PROGRAMTRAPEXCEPTION);
+	state_PTR programTrapOld = (state_PTR) PROGRAMTRAPOLDAREA;
+	programTrapOld->s_pc += 4; /* ??? */
+	PassUpOrDie(programTrapOld, PROGRAMTRAPEXCEPTION);
 }
 
 void TLBManagementHandler()
 {
-	PassUpOrDie(syscallOld, TLBEXCEPTION);
+	state_PTR TLBManagementOld = (state_PTR) TLBMANAGEMENTOLDAREA;
+	TLBManagementOld->s_pc += 4; /* ??? */
+	PassUpOrDie(TLBManagementOld, TLBEXCEPTION);
 }
 
 
 /* SYS1 */
-void CreateProcess (state_t* syscallOld)
+void CreateProcess (state_PTR syscallOld, state_PTR newState)
 /* have a baby */
 /*  a1- address state
 	allocate new pcb
 	copy into p->p_s
 	proccess count ++
 	insert child(currentProc, p)
-	instert procq(p1, &readQ)
+	instert procq(p1, &readyQ)
 	set v0 
 	ldst($oldsys)
 */	
 {
-	unsigned int newState = syscallOld->s_a1;
+	/* unsigned int newState = syscallOld->s_a1; */
 	newProcess = allocPcb();
 	if (newProcess == NULL){
 		syscallOld->s_v0 = -1;
@@ -85,7 +100,7 @@ void CreateProcess (state_t* syscallOld)
 	LoadState(syscallOld);
 }
 /* SYS2 */
-void TerminateProcess(pcb_PTR process)
+void TerminateProcess(state_PTR syscallOld, pcb_PTR process)
 /* Kill the Process */
 /* remove from the proqQ
  while (!emptyChild(currentProcess)) -> removeChild(currentProccess) 
@@ -93,32 +108,58 @@ void TerminateProcess(pcb_PTR process)
 freePcb for each one */
 {
 	HoneyIKilledTheKids(process);
-	outProcQ(&readyQ, process);
+	/*outProcQ(&readyQ, process);
 	processCount--;
 	IncrementProcessTime(process);
-	freePcb(process);
+	freePcb(process);*/
 	Scheduler();
 
 }
 /* helper function for TerminateProcess() 
 	uses recurision to kill all pf the children and their children  and thier children etc 
 	of a pcb p*/
-void HoneyIKilledTheKids(pcb_PTR p)
+void HoneyIKilledTheKids(state_PTR syscallOld, pcb_PTR p)
 {
 	while(!(emptyChild(p)))
 	{
-		pcb_PTR kid = removeChild(p);
-		HoneyIKilledTheKids(kid);
-		outProcQ( &readyQ , kid);
-		processCount--;
-		freePcb(kid);
+		/* pcb_PTR kid = removeChild(p); */
+		HoneyIKilledTheKids(removeChild(p));
 	}
+	if(p == currentProcess)
+	{
+		outChild(p);
+	}
+	if(*(p->p_semAdd) == 0)
+	/* it's on the readyQ */
+	{
+		outProcQ(&readyQ, p);
+	}
+	else
+	/* it's blocked */
+	{
+		memaddr semaddr = p->p_semAdd;
+		outBlocked(p);
+		int firstDevice = semaphoreArray[0];
+		int lastDevice = semaphoreArray[SEMCOUNT - 2]; /* last device is second to last elem bc timer is last elem */
+		if(&firstDevice <= semaddr && semaddr <= &lastDevice)
+		/* blocked on a device sema4 */
+		{
+			softBlockedCount--;
+		}
+		else
+		/* blocked on a non-device sema4 */ 
+		{
+			Verhogen(syscallOld, semaddr);
+		}
+	}
+	processCount--;
+	freePcb(p);
 }
 /*SYS3 */
-void Verhogen(state_t * syscallOld)
+void Verhogen(state_PTR syscallOld, memaddr semaddr)
 {
 	/* increments the semaphore */
-	memaddr semaddr = syscallOld->s_a1;
+	/* memaddr semaddr = syscallOld->s_a1; */
 	(*semaddr)++; 
 	if(*(semaddr) <= 0)
 	{
@@ -128,10 +169,10 @@ void Verhogen(state_t * syscallOld)
 	LoadState(syscallOld);
 }
 /*SYS4*/
-void Passeren(state_t* syscallOld)
+void Passeren(state_PTR syscallOld, memaddr semaddr)
 {
 	/* decrements the semaphore */
-	memaddr semaddr = syscallOld->s_a1;
+	/* memaddr semaddr = syscallOld->s_a1; */
 	(*semaddr)--; 
 	if(*(semaddr) <0)
 	{
@@ -145,17 +186,17 @@ void Passeren(state_t* syscallOld)
 	}
 }
 /*SYS5*/
-void ExceptionStateVec(state_t * syscallOld)
+void ExceptionStateVec(state_PTR syscallOld, exceptionType, oldStateLoc, newStateLoc)
 {
-	unsigned int exceptionType = syscallOld->s_a1;
+	/* unsigned int exceptionType = syscallOld->s_a1;
 	memaddr oldState = syscallOld->s_a2;
-	memaddr newState = syscallOld->s_a3;
+	memaddr newState = syscallOld->s_a3; */
 
 	if(currentProcess->oldAreas[exceptionType]==NULL && currentProcess->newAreas[exceptionType]==NULL)
 	{
-		/* hasn't been requested yets :) */
-		currentProcess->oldAreas[exceptionType]=oldState;
-		currentProccess->newAreas[exceptionType]=newState;
+		/* hasn't been requested yet :) */
+		currentProcess->oldAreas[exceptionType] = oldStateLoc;
+		currentProccess->newAreas[exceptionType] = newStateLoc;
 	}
 	else
 	{
@@ -165,27 +206,53 @@ void ExceptionStateVec(state_t * syscallOld)
 
 }
 /*SYS6*/
-void GetCpuTime()
+void GetCpuTime(state_PTR syscallOld)
 {
-
+	cpu_t time = currentProcess->p_totalTime;
+	cpu_t endTime;
+	STCK(endTime);
+	cpu_t time += endTime - processStartTime;
+	/* process->p_totalTime += (endTime - processStartTime); */
+	syscallOld->s_v0 = time;
 }
 /*SYS7*/
-void WaitForClock()
+void WaitForClock(state_PTR syscallOld)
 {
-
+	semaphore = semaphoreArray[SEMCOUNT - 1]; /*pseudo-clock timer is last semaphore */
+	Passeren(syscallOld, &semaphore);
 }
 /*SYS8*/
-void WaitForIo()
+void WaitForIo(state_PTR syscallOld, int lineNum, int deviceNum, int termRead)
 {
-
+	int index = (lineNum - INITIALLINENUM) * NUMDEVICESPERTYPE + deviceNum
+	if(termRead)
+	{
+		index += NUMDEVICESPERTYPE;
+	}
+	memaddr semaddr = &semaphoreArray[index];
+	/* Passeren(syscallOld, &semaphoreArray[index]); */
+	(*semaddr)--; 
+	if(*(semaddr) <0)
+	{
+		/* block the proccess */
+		BlockHelperFunction(syscallOld, semaddr, currentProcess);
+	}
+	else
+	{
+		/* ERROR. ERROR? */
+		/* terminate??? */
+		TerminateProcess(currentProcess);
+	}
+	device_t* deviceAddr = BASEDEVICEADDRESS + ((lineNum - INITIALLINENUM) * DEVICETYPESIZE) + (deviceNum * DEVICESIZE);
+	syscallOld->v_0 = deviceAddr->d_status;
 }
 /* helper function to localize potential LDST's */
 void LoadState(memaddr processState)
 {
-		LDST(processState);
+	LDST(processState);
 }
 /* helper function to localize blocking */
-void BlockHelperFunction(state_t * syscallOld, memaddr semaddr, pcb_PTR process)
+void BlockHelperFunction(state_PTR syscallOld, memaddr semaddr, pcb_PTR process)
 /* insertBlock(SemADD, current)
 	softBlockedCount++;
 	Scheduler() */
@@ -198,7 +265,7 @@ void BlockHelperFunction(state_t * syscallOld, memaddr semaddr, pcb_PTR process)
 
 /* instruction is greater than 8 */
 /* sys5 */
-void PassUpOrDie(state_t * syscallOld, int exceptionType)
+void PassUpOrDie(state_PTR oldState, int exceptionType)
 {
 	/* has a sys5 for that trap type been called?
 		if that area == null, then no:
@@ -210,14 +277,28 @@ void PassUpOrDie(state_t * syscallOld, int exceptionType)
 		/* TERMINATE BC SYS 5 WASNT CALLED */
 		TerminateProcess(currentProcess);
 	} else {
-			*(currentProcess->oldAreas[exceptionType]) = *(syscallOld);
-			LoadState(currentProcess->newAreas[exceptionType]);
-		}
+		/* *(currentProcess->oldAreas[exceptionType]) = *(oldState); */
+		CopyState(currentProcess->oldAreas[exceptionType], oldState);
+		LoadState(currentProcess->newAreas[exceptionType]);
 	}
+}
 
 void IncrementProcessTime(pcb_PTR process)
 {
 	cpu_t endTime;
 	STCK(endTime);
 	process->p_totalTime += (endTime - processStartTime);
+}
+
+void CopyState(state_PTR newState, state_PTR oldState)
+{
+	int i;
+	newState->s_asid = oldState->s_asid;
+	newState->s_cause = oldState->s_cause;
+	newState->s_status = oldState->s_status;
+	newState->s_pc = oldState->s_pc;
+	for(i = 0; i < STATEREGNUM; i++)
+	{
+		newState->s_reg[i] = oldState->s_reg[i];
+	}
 }

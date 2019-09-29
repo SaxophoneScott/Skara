@@ -36,5 +36,5 @@ void scheduler():
 		/* store off TOD */
 		/* currentProcess->p_startTime = STCK(TODLOADDR); */
 		STCK(processStartTime);
-		LDST(&(currentProcess->p_s)); /* context switch! */
+		LoadState(&(currentProcess->p_s)); /* context switch! */
 	}

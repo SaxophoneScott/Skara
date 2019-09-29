@@ -7,7 +7,7 @@ int softBlockCount;
 pcb_PTR currentProcess;
 pcd_PTR readyQ;
 /* the order of devices on the array is as follows: 
-	[timer, 8 disk devices, 8 tape devices, 8 network adapters, 8 printer devices, 8 terminal devices] */
+	[8 disk devices, 8 tape devices, 8 network adapters, 8 printer devices, 8 terminal devices, timer] */
 int semaphoreArray[SEMCOUNT]; 
 cpu_t processStartTime;
 
@@ -24,7 +24,7 @@ void main(){
 
 	/* initialize syscall new area */
 	/* set PC to syscallHandler */
-	state_t* syscallNew = (state_t*) SYSCALLNEWAREA;
+	state_PTR syscallNew = (state_PTR) SYSCALLNEWAREA;
 	syscallNew->s_pc = (memaddr) SyscallHandler; /* in exceptions.c */
 	syscallNew->s_t9 = (memaddr) SyscallHandler; /* always set t9 to be the same as pc */
 	/* set stack pointer to last page of physcial memory (RAMTOP) */
@@ -34,7 +34,7 @@ void main(){
 
 	/* initialize programTrap new area */
 	/* set PC */
-	state_t* programTrapNew = (state_t*) PROGRAMTRAPNEWAREA;
+	state_PTR programTrapNew = (state_PTR) PROGRAMTRAPNEWAREA;
 	programTrapNew->s_pc = (memaddr) ProgramTrapHandler; /* in exceptions.c */
 	programTrapNew->s_t9 = (memaddr) ProgramTrapHandler; 
 	/* set stack pointer */
@@ -44,7 +44,7 @@ void main(){
 
 	/* initialize TLBManagement new area */
 	/* set PC */
-	state_t* TLBMgmtNew = (state_t*) TLBMANAGEMENTNEWAREA;
+	state_PTR TLBMgmtNew = (state_PTR) TLBMANAGEMENTNEWAREA;
 	TLBMgmtNew->s_pc = (memaddr) TLBManagementHandler; /* in exceptions.c */
 	TLBMgmtNew->s_t9 = (memaddr) TLBManagementHandler; 
 	/* set stack pointer */
@@ -54,7 +54,7 @@ void main(){
 
 	/* initialize interrupt new area */
 	/* set PC */
-	state_t* interruptNew = (state_t*) INTERRUPTNEWAREA;
+	state_PTR interruptNew = (state_PTR) INTERRUPTNEWAREA;
 	interruptNew->s_pc = (memaddr) InterruptHandler; /* in interrupts.c */
 	interruptNew->s_t9 = (memaddr) InterruptHandler;
 	/* set stack pointer */
