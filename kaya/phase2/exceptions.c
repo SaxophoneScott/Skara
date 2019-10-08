@@ -260,6 +260,7 @@ void BlockHelperFunction(state_PTR syscallOld, memaddr semaddr, pcb_PTR process)
 	IncrementProcessTime(process);
 	insertBlocked(semaddr, process);
 	softBlockedCount++;
+	currentProcess = NULL;
 	Scheduler();
 }
 
