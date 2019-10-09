@@ -1,4 +1,4 @@
-void syscallHandler(){
+void SyscallHandler(){
 	state_PTR syscallOld = (state_PTR) SYSCALLOLDAREA;
 	state_PTR programTrapOld = (state_PTR) PROGRAMTRAPOLDAREA;
 	syscallOld->s_pc += 4;
@@ -58,7 +58,7 @@ void syscallHandler(){
 	}
 }
 
-void programTrapHandler()
+void ProgramTrapHandler()
 {
 	state_PTR programTrapOld = (state_PTR) PROGRAMTRAPOLDAREA;
 	programTrapOld->s_pc += 4; /* ??? */
@@ -224,7 +224,7 @@ void WaitForClock(state_PTR syscallOld)
 /*SYS8*/
 void WaitForIo(state_PTR syscallOld, int lineNum, int deviceNum, int termRead)
 {
-	int index = (lineNum - INITIALLINENUM) * NUMDEVICESPERTYPE + deviceNum
+	int index = (lineNum - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + deviceNum
 	if(termRead)
 	{
 		index += NUMDEVICESPERTYPE;
@@ -243,7 +243,7 @@ void WaitForIo(state_PTR syscallOld, int lineNum, int deviceNum, int termRead)
 		/* terminate??? */
 		TerminateProcess(currentProcess);
 	}
-	device_t* deviceAddr = BASEDEVICEADDRESS + ((lineNum - INITIALLINENUM) * DEVICETYPESIZE) + (deviceNum * DEVICESIZE);
+	device_t* deviceAddr = (device_t*) (BASEDEVICEADDRESS + ((lineNum - INITIALDEVLINENUM) * DEVICETYPESIZE) + (deviceNum * DEVICESIZE));
 	syscallOld->v_0 = deviceAddr->d_status;
 }
 /* helper function to localize potential LDST's */

@@ -44,6 +44,9 @@
 #define INTERRUPTMASKOFF 		0x00000000 	/* change this later maybe */
 #define INTERRUPTMASKON			0x0000FF00
 
+/* values for controlling bits in the cause register */
+#define PRIVILEDGEDINSTR		0x00000028
+
 /* need one semaphore for each external device that is not terminal + 2 for each terminal device + 1 for the clock
 	external devices:
 		8 disk devices
@@ -53,8 +56,13 @@
 		8 terminal devices
 	so 4*8 + 2*8 + 1 = 49 total semaphores 
 	The order of the semaphore array is as follows:	
-		[timer, 8 disk devices, 8 tape devices, 8 network adapters, 8 printer devices, 8 terminal devices] */
-#define SEMCOUNT 	49
+		[8 disk devices, 8 tape devices, 8 network adapters, 8 printer devices, 8 terminal device transmitters, 8 terminal device receivers, timer] */
+#define SEMCOUNT 			49
+#define INITIALDEVLINENUM 	3
+#define NUMDEVICESPERTYPE 	8
+#define BASEDEVICEADDRESS	0x10000050
+#define DEVICETYPESIZE 		0x00000080
+#define DEVICESIZE			0x00000010
 
 /* syscall services */
 #define CREATEPROCESS 		1
@@ -92,6 +100,12 @@
 
 #define TRAPTYPES	3
 
+/* values for determining line number in interrupts pending IP bits of cause reg
+and devince number in interruping devices bit map */
+#define INTERRUPTLINES 	{0x00000100, 0x00000200, 0x00000400, 0x00000800, 0x00001000, 0x00002000, 0x00004000, 0x00008000 
+#define NUMLINES		8
+#define INTERRUPTDEVICES {0x00000001, 0x00000002, 0x00000004, 0x00000008, 0x00000010, 0x00000020, 0x00000040, 0x00000080}
+#define NUMDEVICES 		8
 
 /* device interrupts */
 #define DISKINT		3
