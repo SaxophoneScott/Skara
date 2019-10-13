@@ -1,11 +1,16 @@
 #include "../h/const.h"
 #include "../h/types.h"
+#include "../e/exceptions.e"
+#include "../e/initial.e"
+#include "../e/interrupts.e"
+#include "../e/scheduler.e"
+
 
 /* phase 2 global variables */
-int proccessCount;
+int processCount;
 int softBlockCount;
 pcb_PTR currentProcess;
-pcd_PTR readyQ;
+pcb_PTR readyQ;
 /* the order of devices on the array is as follows: 
 	[8 disk devices, 8 tape devices, 8 network adapters, 8 printer devices, 8 terminal devices, timer] */
 int semaphoreArray[SEMCOUNT]; 

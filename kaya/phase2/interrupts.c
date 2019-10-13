@@ -1,3 +1,15 @@
+
+
+
+
+
+#include "../h/const.h"
+#include "../h/types.h"
+#include "../e/exceptions.e"
+#include "../e/initial.e"
+#include "../e/interrupts.e"
+#include "../e/scheduler.e"
+
 void InterruptHandler()
 {
 	state_PTR interruptOld = (state_PTR) INTERRUPTOLDAREA;

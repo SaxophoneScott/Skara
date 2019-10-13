@@ -1,6 +1,11 @@
 
+#include "../h/const.h"
+#include "../h/types.h"
+#include "../e/exceptions.e"
+#include "../e/initial.e"
+#include "../e/scheduler.e"
 
-void scheduler():
+void Scheduler():
 	pcb_PTR newProcess = removeProcQ(&readyQ);
 
 	/* the readyQ is empty :( */

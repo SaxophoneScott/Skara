@@ -1,3 +1,17 @@
+
+
+
+
+
+
+
+#include "../h/const.h"
+#include "../h/types.h"
+#include "../e/exceptions.e"
+#include "../e/initial.e"
+
+#include "../e/scheduler.e"
+
 void SyscallHandler(){
 	state_PTR syscallOld = (state_PTR) SYSCALLOLDAREA;
 	state_PTR programTrapOld = (state_PTR) PROGRAMTRAPOLDAREA;
@@ -104,7 +118,7 @@ void TerminateProcess(state_PTR syscallOld, pcb_PTR process)
 /* Kill the Process */
 /* remove from the proqQ
  while (!emptyChild(currentProcess)) -> removeChild(currentProccess) 
- proccessCount -- for each child removed
+ processCount -- for each child removed
 freePcb for each one */
 {
 	HoneyIKilledTheKids(process);
@@ -196,7 +210,7 @@ void ExceptionStateVec(state_PTR syscallOld, exceptionType, oldStateLoc, newStat
 	{
 		/* hasn't been requested yet :) */
 		currentProcess->oldAreas[exceptionType] = oldStateLoc;
-		currentProccess->newAreas[exceptionType] = newStateLoc;
+		currentProcess->newAreas[exceptionType] = newStateLoc;
 	}
 	else
 	{
