@@ -61,7 +61,6 @@ gets reallocated. */
 		elem->p_sib_prev = NULL;
 		elem->p_sib_next = NULL;
 		elem->p_semAdd = NULL;
-		elem->p_startTime = NULL;
 		elem->p_totalTime = NULL;
 		for(i = 0; i < NUMEXCEPTIONTYPES; i++){
 			elem->oldAreas[i] = NULL;
