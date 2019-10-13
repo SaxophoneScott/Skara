@@ -86,6 +86,7 @@ typedef struct state_t {
 #define s_HI	s_reg[29]
 #define s_LO	s_reg[30]
 
+#define TRAPTYPES 3
 /* process control block type */
 typedef struct pcb_t{
 	/* process queue fields */
@@ -103,8 +104,8 @@ typedef struct pcb_t{
 	/* cpu_t 		p_startTime; */
 	cpu_t		p_totalTime;
 
-	state_t*[]	oldAreas,	/* [TLB, programtrap, syscall] */
-				newAreas;	/* [TLB, programtrap, syscall] */
+	state_t*	oldAreas[TRAPTYPES],	/* [TLB, programtrap, syscall] */
+			newAreas[TRAPTYPES];	/* [TLB, programtrap, syscall] */
 
 } pcb_t, *pcb_PTR;
 
