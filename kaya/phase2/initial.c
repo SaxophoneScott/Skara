@@ -4,6 +4,7 @@
 #include "../e/initial.e"
 #include "../e/interrupts.e"
 #include "../e/scheduler.e"
+#include "/usr/local/include/umps2/umps/libumps.e"
 
 
 /* phase 2 global variables */
@@ -27,45 +28,10 @@ void main(){
 
 	unsigned int statusRegValue = ALLOFF | VMOFF | KERNELON | INTERRUPTSMASKED; /* represents VM off, interrupts masked, and kernel mode on */
 
-	/* initialize syscall new area */
-	/* set PC to syscallHandler */
-	state_PTR syscallNew = (state_PTR) SYSCALLNEWAREA;
-	syscallNew->s_pc = (memaddr) SyscallHandler; /* in exceptions.c */
-	syscallNew->s_t9 = (memaddr) SyscallHandler; /* always set t9 to be the same as pc */
-	/* set stack pointer to last page of physcial memory (RAMTOP) */
-	syscallNew->s_sp = ramtop;
-	/* set status reg: VM off, Interrupts masked, Supervisor mode on */
-	syscallNew->s_status = statusRegValue; /* setStatus?? */
-
-	/* initialize programTrap new area */
-	/* set PC */
-	state_PTR programTrapNew = (state_PTR) PROGRAMTRAPNEWAREA;
-	programTrapNew->s_pc = (memaddr) ProgramTrapHandler; /* in exceptions.c */
-	programTrapNew->s_t9 = (memaddr) ProgramTrapHandler; 
-	/* set stack pointer */
-	programTrapNew->s_sp = ramtop;
-	/* set status */
-	programTrapNew->s_status = statusRegValue;
-
-	/* initialize TLBManagement new area */
-	/* set PC */
-	state_PTR TLBMgmtNew = (state_PTR) TLBMANAGEMENTNEWAREA;
-	TLBMgmtNew->s_pc = (memaddr) TLBManagementHandler; /* in exceptions.c */
-	TLBMgmtNew->s_t9 = (memaddr) TLBManagementHandler; 
-	/* set stack pointer */
-	TLBMgmtNew->s_sp = ramtop;
-	/* set status */
-	TLBMgmtNew->s_status = statusRegValue;
-
-	/* initialize interrupt new area */
-	/* set PC */
-	state_PTR interruptNew = (state_PTR) INTERRUPTNEWAREA;
-	interruptNew->s_pc = (memaddr) InterruptHandler; /* in interrupts.c */
-	interruptNew->s_t9 = (memaddr) InterruptHandler;
-	/* set stack pointer */
-	interruptNew->s_sp = ramtop;
-	/* set status */
-	interruptNew->s_status = statusRegValue;
+	initializeNewArea(state_PTR SYSCALLNEWAREA, memaddr SyscallHandler, memaddr ramtop, unsigned int statusRegValue);
+	initializeNewArea(state_PTR PROGRAMTRAPNEWAREA, memaddr ProgramTrapHandler, memaddr ramtop, unsigned int statusRegValue);
+	initializeNewArea(state_PTR TLBMANAGEMENTNEWAREA, memaddr TLBManagementHandler, memaddr ramtop, unsigned int statusRegValue);
+	initializeNewArea(state_PTR INTERRUPTNEWAREA, memaddr InterruptHandler, memaddr ramtop, unsigned int statusRegValue);
 
 	/* initialize data structures */
 	initPcbs();
@@ -97,4 +63,17 @@ void main(){
 	insertProcQ(&readyQ, initialProc);
 
 	scheduler();
+}
+
+void initializeNewArea(state_PTR memArea, memaddr handlerName, memaddr sp, unsigned int status)
+{
+	/* initialize the new area */
+	/* set PC to handler function */
+	state_PTR newMemArea = (state_PTR) memArea;
+	newMemArea->s_pc = (memaddr) handlerName; /* in exceptions.c */
+	newMemArea->s_t9 = (memaddr) handlerName; /* always set t9 to be the same as pc */
+	/* set stack pointer to last page of physcial memory (RAMTOP) */
+	newMemArea->s_sp = sp;
+	/* set status reg: VM off, Interrupts masked, Supervisor mode on */
+	newMemArea->s_status = status; /* setStatus?? */
 }
