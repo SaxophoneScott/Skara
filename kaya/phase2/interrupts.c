@@ -5,6 +5,8 @@
 
 #include "../h/const.h"
 #include "../h/types.h"
+#include "../e/pcb.e"
+#include "../e/asl.e"
 #include "../e/exceptions.e"
 #include "../e/initial.e"
 #include "../e/interrupts.e"
@@ -68,13 +70,13 @@ void InterruptHandler()
 				}
 				j++; /* check the next device */
 			}
-				device_t* deviceAddr = (device_t*) (BASEDEVICEADDRESS + ((lineNum - INITIALDEVLINENUM) * DEVICETYPESIZE) + (deviceNum * DEVICESIZE));
-				int index = (lineNum - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + deviceNum; /* calcuating index*/
+				device_t* deviceAddr = (device_t*) (BASEDEVICEADDRESS + ((lineNum - INITIALDEVLINENUM) * DEVICETYPESIZE) + (devNum * DEVICESIZE));
+				int index = (lineNum - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + devNum; /* calcuating index*/
 				if(lineNum ==7)
 					{
 						if(deviceAddr->t_transm_status == 0x00000001)
 						{
-							index += NUMDEVICESPERTYPE /* its a receive!*/
+							index += NUMDEVICESPERTYPE; /* its a receive!*/
 							transmitBool = FALSE;
 						} 
 						/* else we do nothing as its a trans-status*/
