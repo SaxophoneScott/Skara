@@ -11,9 +11,9 @@
 
 #include "../h/types.h"
 
-extern  void SycallHandler();
+extern  void SyscallHandler();
 extern  void ProgramTrapHandler();
-extern  void TLBMangementHandler();
+extern  void TLBManagementHandler();
 extern  void LoadState(memaddr processState);
 extern  void IncrementProcessTime(pcb_PTR process);
 

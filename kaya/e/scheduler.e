@@ -1,22 +1,16 @@
-#ifndef ASL
-#define ASL
+#ifndef SCHEDULER
+#define SCHEDULER
 
-/************************** ASL.E ******************************
+/************************** SCHEDULER.E ******************************
 *
-*  The externals declaration file for the Active Semaphore List
+*  The externals declaration file for the Scheduler
 *    Module.
 *
-*  Written by Mikeyg
+*  Written by Scott Hanrrington and Kara Schatz
 */
 
-#include "../h/types.h"
+extern void Scheduler();
 
-extern int insertBlocked (int *semAdd, pcb_PTR p);
-extern pcb_PTR removeBlocked (int *semAdd);
-extern pcb_PTR outBlocked (pcb_PTR p);
-extern pcb_PTR headBlocked (int *semAdd);
-extern void initASL ();
-
-/***************************************************************/
+/********************************************************************/
 
 #endif

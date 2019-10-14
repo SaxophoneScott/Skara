@@ -1,5 +1,7 @@
 #include "../h/const.h"
 #include "../h/types.h"
+#include "../e/pcb.e"
+#include "../e/asl.e"
 #include "../e/exceptions.e"
 #include "../e/initial.e"
 #include "../e/interrupts.e"
@@ -18,6 +20,7 @@ int semaphoreArray[SEMCOUNT];
 cpu_t processStartTime;
 
 HIDDEN void initializeNewArea(state_PTR memArea, memaddr handlerName, memaddr sp, unsigned int status);
+extern void test();
 
 void main(){
 	/* populate 4 new areas in low memory:
@@ -29,6 +32,10 @@ void main(){
 	memaddr ramtop = busRegArea->rambase + busRegArea->ramsize; /* ramtop address */
 
 	unsigned int statusRegValue = ALLOFF | VMOFF | KERNELON | INTERRUPTSMASKED; /* represents VM off, interrupts masked, and kernel mode on */
+
+	int i;
+
+	pcb_PTR initialProc;
 
 	initializeNewArea((state_PTR) SYSCALLNEWAREA, (memaddr) SyscallHandler, (memaddr) ramtop, statusRegValue);
 	initializeNewArea((state_PTR) PROGRAMTRAPNEWAREA, (memaddr) ProgramTrapHandler, (memaddr) ramtop, statusRegValue);
@@ -44,27 +51,27 @@ void main(){
 	softBlockCount = 0;
 	currentProcess = NULL;
 	readyQ = mkEmptyProcQ();
-	processStartTime = NULL;
+	processStartTime = 0;
 
 	/* initialize nucleus maintained semaphores */
-	for(int i=0; i < SEMCOUNT; i++){
+	for(i=0; i < SEMCOUNT; i++){
 		semaphoreArray[i] = 0;
 	}
 
-	pcb_PTR initialProc = allocPcb(); /* initial process */
+	initialProc = allocPcb(); /* initial process */
 	/* initialize its state: 
 		set stack pointer to penultimate page of physical memory
 		set PC to p2test
 		set status: VM off, Interrupts enabled/unmasked, Supervisor mode on */
-	initialProc->p_s->s_sp = ramtop - PAGESIZE;
-	initialProc->p_s->s_pc = p2test; /* change based on name */
-	initialProc->p_s->s_status = ALLOFF | VMOFF | INTERRUPTSUNMASKED | KERNELON;
+	initialProc->p_s.s_sp = ramtop - PAGESIZE;
+	initialProc->p_s.s_pc = (memaddr) test; /* change based on name */
+	initialProc->p_s.s_status = ALLOFF | VMOFF | INTERRUPTSUNMASKED | KERNELON;
 
 	processCount++;
 
 	insertProcQ(&readyQ, initialProc);
 
-	scheduler();
+	Scheduler();
 }
 
 HIDDEN void initializeNewArea(state_PTR memArea, memaddr handlerName, memaddr sp, unsigned int status)

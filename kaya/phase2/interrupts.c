@@ -18,14 +18,15 @@ void InterruptHandler()
 	int foundLine = FALSE; 	/* indicates whether or not the interrupt line has been found */
 	int lineNum; 			/* the highest priority line with interrupt */
 	int transmitBool = TRUE; /* assuming true because otherwise if its the othercase, we would want to change it to false*/
-	
+	unsigned int interruptOn;
+
 	/* find highest priority line with interrupt */
-	while(i < NUMLINES && !foundLine)
+	while((i < NUMLINES) && (!foundLine))
 	{
 		causeReg= causeReg & MASKCAUSEREG; /*  Zero out the irrelevant values */
-		unsigned int interruptOn = causeReg & INTERRUPTLINES[i]; /* will be all 0s if there is NOT an interrupt on line i */
+		interruptOn = causeReg & (INTERRUPTLINES[i]); /* will be all 0s if there is NOT an interrupt on line i */
 		/* line i has an interrupt */
-		if(interruptOn != 0)
+		if(interruptOn != 0x00000000)
 		{
 			foundLine = TRUE;
 			lineNum = i;
