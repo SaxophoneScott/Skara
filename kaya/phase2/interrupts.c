@@ -36,8 +36,16 @@ void InterruptHandler()
 	/* one of the lines had an interrupt, so let's handle it */
 	
 		/* it's a clock line ---> coming soon... to a theater near you */
-		else if(lineNum == 1 || lineNum == 2)
-		{}
+		/* its the proccesor local timer!*/
+		if(lineNum == 1 )
+		{
+
+		}
+		/* its the interval timer!*/
+		if(lineNum== 2)
+		{
+
+		}
 		/* it's a device line */
 		else
 		{
