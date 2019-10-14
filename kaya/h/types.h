@@ -104,8 +104,8 @@ typedef struct pcb_t{
 	/* cpu_t 		p_startTime; */
 	cpu_t		p_totalTime;
 
-	state_t*	oldAreas[TRAPTYPES],	/* [TLB, programtrap, syscall] */
-			newAreas[TRAPTYPES];	/* [TLB, programtrap, syscall] */
+	state_t*	oldAreas[TRAPTYPES];	/* [TLB, programtrap, syscall] */
+	state_t*	newAreas[TRAPTYPES];	/* [TLB, programtrap, syscall] */
 
 } pcb_t, *pcb_PTR;
 
