@@ -17,6 +17,8 @@ pcb_PTR readyQ;
 int semaphoreArray[SEMCOUNT]; 
 cpu_t processStartTime;
 
+HIDDEN void initializeNewArea(state_PTR memArea, memaddr handlerName, memaddr sp, unsigned int status);
+
 void main(){
 	/* populate 4 new areas in low memory:
 		set stack pointer to last page of physcial memory (RAMTOP) (same for all)
@@ -65,7 +67,7 @@ void main(){
 	scheduler();
 }
 
-void initializeNewArea(state_PTR memArea, memaddr handlerName, memaddr sp, unsigned int status)
+HIDDEN void initializeNewArea(state_PTR memArea, memaddr handlerName, memaddr sp, unsigned int status)
 {
 	/* initialize the new area */
 	/* set PC to handler function */
