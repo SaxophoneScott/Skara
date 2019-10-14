@@ -32,18 +32,9 @@ void InterruptHandler()
 		}
 		i++; /* check the next line */
 	}
-	
-	/* none of the lines had an interrupt... so why are we here? */
-	if(!foundLine)
-	{
-		/* ERROR ERROR */
-	}
 	/* one of the lines had an interrupt, so let's handle it */
 	else
 	{
-		/* ignore this one... :( */
-		if(lineNum == 0)
-		{}
 		/* it's a clock line ---> coming soon... to a theater near you */
 		else if(lineNum == 1 || lineNum == 2)
 		{}
@@ -69,15 +60,6 @@ void InterruptHandler()
 				}
 				j++; /* check the next device */
 			}
-
-			/* none of the devices had an interrupt... so why are we here? */
-			if(!foundDevice)
-			{
-				/* ERROR ERROR */
-			}
-			/* one of the devices had an interrupt, so let's handle it */
-			else
-			{
 				device_t* deviceAddr = (device_t*) (BASEDEVICEADDRESS + ((lineNum - INITIALDEVLINENUM) * DEVICETYPESIZE) + (deviceNum * DEVICESIZE));
 				int index = (lineNum - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + deviceNum; /* calcuating index*/
 				if(lineNum ==7)
@@ -122,7 +104,7 @@ void InterruptHandler()
 					}
 
 
-			}
+			
 		}
 	}
 }
