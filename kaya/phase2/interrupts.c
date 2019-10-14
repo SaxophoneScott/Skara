@@ -24,7 +24,7 @@ void InterruptHandler()
 	while((i < NUMLINES) && (!foundLine))
 	{
 		causeReg= causeReg & MASKCAUSEREG; /*  Zero out the irrelevant values */
-		interruptOn = causeReg & (INTERRUPTLINES[i]); /* will be all 0s if there is NOT an interrupt on line i */
+		interruptOn = causeReg & INTERRUPTLINES[i]; /* will be all 0s if there is NOT an interrupt on line i */
 		/* line i has an interrupt */
 		if(interruptOn != 0x00000000)
 		{
@@ -34,8 +34,7 @@ void InterruptHandler()
 		i++; /* check the next line */
 	}
 	/* one of the lines had an interrupt, so let's handle it */
-	else
-	{
+	
 		/* it's a clock line ---> coming soon... to a theater near you */
 		else if(lineNum == 1 || lineNum == 2)
 		{}
@@ -94,7 +93,7 @@ void InterruptHandler()
 							}
 						else
 							{
-								LoadState(interruptOld); /* otherwise we want to return control to the process*/
+								LoadState((memaddr) interruptOld); /* otherwise we want to return control to the process*/
 							}
 
 
@@ -107,5 +106,5 @@ void InterruptHandler()
 
 			
 		}
-	}
+	
 }
