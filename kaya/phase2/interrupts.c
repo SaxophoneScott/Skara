@@ -21,6 +21,8 @@ void InterruptHandler()
 	int lineNum; 			/* the highest priority line with interrupt */
 	int transmitBool = TRUE; /* assuming true because otherwise if its the othercase, we would want to change it to false*/
 	unsigned int interruptOn;
+	device_t* deviceAddr;
+	int * Sema4;
 
 	/* find highest priority line with interrupt */
 	while((i < NUMLINES) && (!foundLine))
@@ -70,7 +72,7 @@ void InterruptHandler()
 				}
 				j++; /* check the next device */
 			}
-				device_t* deviceAddr = (device_t*) (BASEDEVICEADDRESS + ((lineNum - INITIALDEVLINENUM) * DEVICETYPESIZE) + (devNum * DEVICESIZE));
+				deviceAddr = (device_t*) (BASEDEVICEADDRESS + ((lineNum - INITIALDEVLINENUM) * DEVICETYPESIZE) + (devNum * DEVICESIZE));
 				int index = (lineNum - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + devNum; /* calcuating index*/
 				if(lineNum ==7)
 					{
@@ -81,7 +83,7 @@ void InterruptHandler()
 						} 
 						/* else we do nothing as its a trans-status*/
 					}
-				int * Sema4 = &(semaphoreArray[index]);
+				Sema4 = &(semaphoreArray[index]);
 				(*Sema4)++;
 				if((*Sema4) <= 0)
 					{
