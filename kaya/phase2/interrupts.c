@@ -85,13 +85,13 @@ void InterruptHandler()
 				(*Sema4)++;
 				if((*Sema4) <= 0)
 					{
-						pcb_ptr Proc=removeBlocked(Sema4);
-						Proc->p_s->s_v0 = deviceAddr->d_status;
+						pcb_PTR Proc=removeBlocked(Sema4);
+						Proc->p_s.s_v0 = deviceAddr->d_status;
 						softBlockCount--;
 						insertProcQ(&readyQ, Proc);
 						if(lineNum ==7 && transmitBool)
 							{
-								deviceAddr->d_transm_command = 0x00000001; 
+								deviceAddr->t_transm_command = 0x00000001; 
 							}	
 							else
 							{
