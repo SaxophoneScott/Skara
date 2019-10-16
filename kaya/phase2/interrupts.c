@@ -107,7 +107,7 @@ void InterruptHandler()
 					}
 				else
 					{
-						LoadState((memaddr) interruptOld); /* otherwise we want to return control to the process*/
+						LoadState(interruptOld); /* otherwise we want to return control to the process*/
 					}
 
 
