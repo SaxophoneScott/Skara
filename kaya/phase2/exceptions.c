@@ -114,7 +114,7 @@ HIDDEN void CreateProcess (state_PTR syscallOld, state_PTR newState)
 	if (newProcess == NULL){
 		syscallOld->s_v0 = -1;
 	} else {
-		newProcess->p_s = *newState;
+		CopyState(&(newProcess->p_s), newState);
 		insertChild(currentProcess, newProcess);
 		insertProcQ(&readyQ, newProcess);
 		processCount++;
