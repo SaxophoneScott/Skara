@@ -62,7 +62,7 @@ void InterruptHandler()
 		while(j < NUMDEVICES && !foundDevice)
 		{
 			devBitMap = devBitMap & MASKDEVBITMAP; /* Zeroing out irrelevant bits*/
-			unsigned int interruptOn = devBitMap & deviceOn; /* will be all 0s if there is NOT an interrupt on device i */
+			interruptOn = devBitMap & deviceOn; /* will be all 0s if there is NOT an interrupt on device i */
 			/* device i has an interrupt */
 			if(interruptOn != 0)
 			{

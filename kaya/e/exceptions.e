@@ -14,7 +14,7 @@
 extern  void SyscallHandler();
 extern  void ProgramTrapHandler();
 extern  void TLBManagementHandler();
-extern  void LoadState(memaddr processState);
+extern  void LoadState(state_PTR processState);
 extern  void IncrementProcessTime(pcb_PTR process);
 
 

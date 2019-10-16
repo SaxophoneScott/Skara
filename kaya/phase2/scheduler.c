@@ -1,11 +1,14 @@
 
 #include "../h/const.h"
 #include "../h/types.h"
+#include "../e/pcb.e"
 #include "../e/exceptions.e"
 #include "../e/initial.e"
 #include "../e/scheduler.e"
+#include "/usr/local/include/umps2/umps/libumps.e"
 
-void Scheduler():
+void Scheduler()
+{
 	pcb_PTR newProcess = removeProcQ(&readyQ);
 
 	/* the readyQ is empty :( */
@@ -24,7 +27,7 @@ void Scheduler():
 			else{
 				/* suspended animation */
 				/* currentProcess->p_s->s_status = ALLOFF | CURRINTERRUPTSUNMASKED | INTERRUPTMASKON; */
-				setStatus(ALLOFF | CURRINTERRUPTSUNMASKED | INTERRUPTMASKON);
+				setSTATUS(ALLOFF | CURRINTERRUPTSUNMASKED | INTERRUPTMASKON);
 				currentProcess = NULL;
 				WAIT();
 				/* modify current state so wait bit is on and interrupts are enabled */
@@ -43,3 +46,4 @@ void Scheduler():
 		STCK(processStartTime);
 		LoadState(&(currentProcess->p_s)); /* context switch! */
 	}
+}
