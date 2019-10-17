@@ -7,7 +7,7 @@
 #include "../e/interrupts.e"
 #include "../e/scheduler.e"
 #include "/usr/local/include/umps2/umps/libumps.e"
-
+#include "../e/p2test.e" /* may need this, totally unsure about it though"*/
 
 /* phase 2 global variables */
 int processCount;
@@ -70,7 +70,7 @@ void main(){
 	processCount++;
 
 	insertProcQ(&readyQ, initialProc);
-
+	setTIMER(5000); /*setting the clock timer before scheduler*/
 	Scheduler();
 }
 
