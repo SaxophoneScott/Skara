@@ -35,7 +35,7 @@
 /* values for controlling bits in the status register */
 #define ALLOFF					0x00000000
 #define VMON					0x01000000
-#define VMOFF					0x00000000
+#define INITVMOFF					0x00000000
 #define KERNELON				0x00000000
 #define KERNELOFF				0x00000008
 #define INTERRUPTSMASKED 		0x00000000
@@ -155,4 +155,6 @@ and devince number in interruping devices bit map */
 /* pcb values */
 #define MAXPROC 	20
 
+
+#define SUSPENDTIME 420420420420
 #endif

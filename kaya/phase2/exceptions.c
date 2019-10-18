@@ -40,31 +40,40 @@ void SyscallHandler(){
 				/* errors go in v0 as -1 or 0 otherwise */
 				/* non blocking*/
 				CreateProcess(syscallOld, (state_PTR) l_a1);
+				break;
 			case TERMINATEPROCESS:
 			/* blocking */
 				TerminateProcess(syscallOld, currentProcess);
+				break;
 			case VERHOGEN:
 			/* non blocking*/
 				Verhogen(syscallOld, (int*) l_a1);
+				break;
 			case PASSEREN:
 			/* sometimes blocking*/
 				Passeren(syscallOld, (int*) l_a1);
+				break;
 			case EXCEPTIONSTATEVEC:
 			/* non blocking*/
 			/* pass up or die? */
 			 	ExceptionStateVec(syscallOld, l_a1, (memaddr) l_a2, (memaddr) l_a3);
+			 	break;
 			case GETCPUTIME: 
 			/* non blocking*/
 				GetCpuTime(syscallOld);
+				break
 			case WAITFORCLOCK:
 			/* blocking*/
 				WaitForClock(syscallOld);
+				break;
 			case WAITFORIO:
 			/* blocking */
 				WaitForIo(syscallOld, (int) l_a1, (int) l_a2, (int) l_a3);
+				break;
 			default:
 			/* pass up or die*/
 				PassUpOrDie(syscallOld, SYSCALLEXCEPTION);
+
 		}
 	}
 	else
@@ -84,15 +93,27 @@ void SyscallHandler(){
 void ProgramTrapHandler()
 {
 	state_PTR programTrapOld = (state_PTR) PROGRAMTRAPOLDAREA;
-	programTrapOld->s_pc += 4; /* ??? */
 	PassUpOrDie(programTrapOld, PROGRAMTRAPEXCEPTION);
 }
 
 void TLBManagementHandler()
 {
 	state_PTR TLBManagementOld = (state_PTR) TLBMANAGEMENTOLDAREA;
-	TLBManagementOld->s_pc += 4; /* ??? */
 	PassUpOrDie(TLBManagementOld, TLBEXCEPTION);
+}
+
+
+/* helper function to localize potential LDST's */
+void LoadState(state_PTR processState)
+{
+	LDST(processState);
+}
+
+void IncrementProcessTime(pcb_PTR process)
+{
+	cpu_t endTime;
+	STCK(endTime);
+	process->p_totalTime += (endTime - processStartTime);
 }
 
 
@@ -152,7 +173,7 @@ HIDDEN void HoneyIKilledTheKids(state_PTR syscallOld, pcb_PTR p)
 	{
 		outChild(p);
 	}
-	if(*(p->p_semAdd) == 0)
+	else if(p->p_semAdd == NULL)
 	/* it's on the readyQ */
 	{
 		outProcQ(&readyQ, p);
@@ -172,7 +193,7 @@ HIDDEN void HoneyIKilledTheKids(state_PTR syscallOld, pcb_PTR p)
 		else
 		/* blocked on a non-device sema4 */ 
 		{
-			Verhogen(syscallOld, semaddr);
+			*semaddr++;
 		}
 	}
 	processCount--;
@@ -187,7 +208,10 @@ HIDDEN void Verhogen(state_PTR syscallOld, int* semaddr)
 	if((*semaddr) <= 0)
 	{
 		pcb_PTR p=removeBlocked(semaddr);
+		if(p !=NULL )
+		{
 		insertProcQ(&readyQ, p);
+		}
 	}
 	LoadState(syscallOld);
 }
@@ -271,11 +295,7 @@ HIDDEN void WaitForIo(state_PTR syscallOld, int lineNum, int deviceNum, int term
 	deviceAddr = (device_t*) (BASEDEVICEADDRESS + ((lineNum - INITIALDEVLINENUM) * DEVICETYPESIZE) + (deviceNum * DEVICESIZE));
 	syscallOld->s_v0 = deviceAddr->d_status;
 }
-/* helper function to localize potential LDST's */
-void LoadState(state_PTR processState)
-{
-	LDST(processState);
-}
+
 /* helper function to localize blocking */
 HIDDEN void BlockHelperFunction(state_PTR syscallOld, int* semaddr, pcb_PTR process)
 /* insertBlock(SemADD, current)
@@ -305,15 +325,9 @@ HIDDEN void PassUpOrDie(state_PTR oldState, int exceptionType)
 	} else {
 		/* *(currentProcess->oldAreas[exceptionType]) = *(oldState); */
 		CopyState(currentProcess->oldAreas[exceptionType], oldState);
+		CopyState(&(currentProcess->p_s),currentProccess->newAreas[exceptionType]);
 		LoadState(currentProcess->newAreas[exceptionType]);
 	}
-}
-
-void IncrementProcessTime(pcb_PTR process)
-{
-	cpu_t endTime;
-	STCK(endTime);
-	process->p_totalTime += (endTime - processStartTime);
 }
 
 HIDDEN void CopyState(state_PTR newState, state_PTR oldState)

@@ -9,6 +9,9 @@
 
 void InterruptHandler()
 {
+	cpu_t INTERRUPTSTART;
+	cpu_t INTERRUPTEND;
+	STCK(INTERRUPTSTART);
 	state_PTR interruptOld = (state_PTR) INTERRUPTOLDAREA;
 	unsigned int causeReg = interruptOld->s_cause;
 	int i = 0;						/* loop control variable for determining interrupt line number */
@@ -41,11 +44,24 @@ void InterruptHandler()
 	/* its the proccesor local timer!*/
 	if(lineNum == 1)
 	{
+		IncrementProcessTime(currentProcess);
+		insertProcQ(&readyQ, currentProcess);
+		Scheduler();
 
 	}
 	/* its the interval timer!*/
 	if(lineNum == 2)
 	{
+		int sema4=semaphoreArray[SEMNUM-1];
+		while(sema4<0)
+		{
+			sema4++;
+			pcb_PTR p=removeBlocked(&sema4);
+			insertProcQ(&readyQ, p);
+		}
+		semaphoreArray[SEMNUM-1]= 0;
+		LDIT(100000);
+
 
 	}
 	/* it's a device line */
@@ -74,8 +90,9 @@ void InterruptHandler()
 		}
 
 		/* one of the devices had an interrupt, so let's handle it */
-		deviceAddr = (device_t*) (BASEDEVICEADDRESS + ((lineNum - INITIALDEVLINENUM) * DEVICETYPESIZE) + (devNum * DEVICESIZE));
+	/*	deviceAddr = (device_t*) (BASEDEVICEADDRESS + ((lineNum - INITIALDEVLINENUM) * DEVICETYPESIZE) + (devNum * DEVICESIZE)); */
 		index = (lineNum - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + devNum; /* calcuating index*/
+		deviceAddr = (device_t*) busRegArea->devreg[index]; /* should be the same as the calcuation as before, emphasis on should*/
 		if(lineNum == TERMINT)
 			{
 				if(deviceAddr->t_transm_status == 0x00000001)
@@ -90,10 +107,14 @@ void InterruptHandler()
 		if((*Sema4) <= 0)
 			{
 				pcb_PTR Proc=removeBlocked(Sema4);
-				Proc->p_s.s_v0 = deviceAddr->d_status;
-				softBlockCount--;
-				insertProcQ(&readyQ, Proc);
-				if(lineNum ==7 && transmitBool)
+				if(Proc!=NULL)
+				{
+						Proc->p_s.s_v0 = deviceAddr->d_status;
+						softBlockCount--;
+						insertProcQ(&readyQ, Proc);
+				}
+				
+				if(lineNum == TERMINT && transmitBool)
 					{
 						deviceAddr->t_transm_command = 0x00000001; 
 					}	
@@ -101,12 +122,15 @@ void InterruptHandler()
 					{
 						deviceAddr->d_command= 0x00000001; /* put this in const*/
 					}
+				}
+			}
 				if(currentProcess == NULL)
 					{
 						Scheduler();  /* want to call scheduler if current process is null*/
 					}
 				else
 					{
+						STCK(INTERRUPTEND); 
 						LoadState(interruptOld); /* otherwise we want to return control to the process*/
 					}
 
@@ -118,7 +142,3 @@ void InterruptHandler()
 				}
 
 
-		
-	}
-	
-}

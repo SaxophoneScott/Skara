@@ -7,7 +7,7 @@
 #include "../e/interrupts.e"
 #include "../e/scheduler.e"
 #include "/usr/local/include/umps2/umps/libumps.e"
-#include "../e/p2test.e" /* may need this, totally unsure about it though"*/
+
 
 /* phase 2 global variables */
 int processCount;
@@ -31,7 +31,7 @@ void main(){
 	devregarea_t* busRegArea = (devregarea_t*) RAMBASEADDR; /* rambase address */
 	memaddr ramtop = busRegArea->rambase + busRegArea->ramsize; /* ramtop address */
 
-	unsigned int statusRegValue = ALLOFF | VMOFF | KERNELON | INTERRUPTSMASKED; /* represents VM off, interrupts masked, and kernel mode on */
+	unsigned int statusRegValue = ALLOFF | INITVMOFF | KERNELON | INTERRUPTSMASKED; /* represents VM off, interrupts masked, and kernel mode on */
 
 	int i;
 
@@ -40,7 +40,7 @@ void main(){
 	initializeNewArea((state_PTR) SYSCALLNEWAREA, (memaddr) SyscallHandler, (memaddr) ramtop, statusRegValue);
 	initializeNewArea((state_PTR) PROGRAMTRAPNEWAREA, (memaddr) ProgramTrapHandler, (memaddr) ramtop, statusRegValue);
 	initializeNewArea((state_PTR) TLBMANAGEMENTNEWAREA, (memaddr) TLBManagementHandler, (memaddr) ramtop, statusRegValue);
-	initializeNewArea((state_PTR) INTERRUPTNEWAREA, (memaddr) InterruptHandler, (memaddr) ramtop, statusRegValue);
+	initializeNewArea((state_PTR) INTERRUPTNEWAREA, (memaddr) InterruptHandler, (memaddr) ramtop, statusRegValue); /* mikey had this one as a STST(), not sure if this the case, but if this doenst work maybe try this instead? */
 
 	/* initialize data structures */
 	initPcbs();
@@ -64,13 +64,14 @@ void main(){
 		set PC to p2test
 		set status: VM off, Interrupts enabled/unmasked, Supervisor mode on */
 	initialProc->p_s.s_sp = ramtop - PAGESIZE;
+	initialProc->p_s.t_9= ramtop-PAGESIZE;
 	initialProc->p_s.s_pc = (memaddr) test; /* change based on name */
-	initialProc->p_s.s_status = ALLOFF | VMOFF | INTERRUPTSUNMASKED | KERNELON;
+	initialProc->p_s.s_status = ALLOFF | INITVMOFF | INTERRUPTSUNMASKED | KERNELON;
 
 	processCount++;
 
 	insertProcQ(&readyQ, initialProc);
-	setTIMER(5000); /*setting the clock timer before scheduler*/
+	LDIT(100000); /*setting the clock timer before scheduler*/
 	Scheduler();
 }
 
