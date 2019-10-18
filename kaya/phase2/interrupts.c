@@ -52,14 +52,14 @@ void InterruptHandler()
 	/* its the interval timer!*/
 	if(lineNum == 2)
 	{
-		int sema4=semaphoreArray[SEMNUM-1];
+		int sema4=semaphoreArray[SEMCOUNT-1];
 		while(sema4<0)
 		{
 			sema4++;
 			pcb_PTR p=removeBlocked(&sema4);
 			insertProcQ(&readyQ, p);
 		}
-		semaphoreArray[SEMNUM-1]= 0;
+		semaphoreArray[SEMCOUNT-1]= 0;
 		LDIT(100000);
 
 
@@ -90,9 +90,9 @@ void InterruptHandler()
 		}
 
 		/* one of the devices had an interrupt, so let's handle it */
-	/*	deviceAddr = (device_t*) (BASEDEVICEADDRESS + ((lineNum - INITIALDEVLINENUM) * DEVICETYPESIZE) + (devNum * DEVICESIZE)); */
+		deviceAddr = (device_t*) (BASEDEVICEADDRESS + ((lineNum - INITIALDEVLINENUM) * DEVICETYPESIZE) + (devNum * DEVICESIZE)); 
 		index = (lineNum - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + devNum; /* calcuating index*/
-		deviceAddr = (device_t*) busRegArea->devreg[index]; /* should be the same as the calcuation as before, emphasis on should*/
+	/*	deviceAddr = (device_t *)( busRegArea->devreg[index]);  should be the same as the calcuation as before, emphasis on should*/
 		if(lineNum == TERMINT)
 			{
 				if(deviceAddr->t_transm_status == 0x00000001)

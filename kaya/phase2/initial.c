@@ -64,7 +64,7 @@ void main(){
 		set PC to p2test
 		set status: VM off, Interrupts enabled/unmasked, Supervisor mode on */
 	initialProc->p_s.s_sp = ramtop - PAGESIZE;
-	initialProc->p_s.t_9= ramtop-PAGESIZE;
+	initialProc->p_s.s_t9= ramtop-PAGESIZE;
 	initialProc->p_s.s_pc = (memaddr) test; /* change based on name */
 	initialProc->p_s.s_status = ALLOFF | INITVMOFF | INTERRUPTSUNMASKED | KERNELON;
 
