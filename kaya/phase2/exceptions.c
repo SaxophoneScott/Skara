@@ -61,7 +61,7 @@ void SyscallHandler(){
 			case GETCPUTIME: 
 			/* non blocking*/
 				GetCpuTime(syscallOld);
-				break
+				break;
 			case WAITFORCLOCK:
 			/* blocking*/
 				WaitForClock(syscallOld);
@@ -325,7 +325,7 @@ HIDDEN void PassUpOrDie(state_PTR oldState, int exceptionType)
 	} else {
 		/* *(currentProcess->oldAreas[exceptionType]) = *(oldState); */
 		CopyState(currentProcess->oldAreas[exceptionType], oldState);
-		CopyState(&(currentProcess->p_s),currentProccess->newAreas[exceptionType]);
+		CopyState(&(currentProcess->p_s),currentProcess->newAreas[exceptionType]);
 		LoadState(currentProcess->newAreas[exceptionType]);
 	}
 }

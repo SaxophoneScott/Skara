@@ -29,7 +29,7 @@ void Scheduler()
 				/* currentProcess->p_s->s_status = ALLOFF | CURRINTERRUPTSUNMASKED | INTERRUPTMASKON; */
 				setSTATUS(ALLOFF | CURRINTERRUPTSUNMASKED | INTERRUPTMASKON);
 				currentProcess = NULL;
-				setTimer(SUSPENDTIME);
+				setTIMER(SUSPENDTIME);
 				WAIT();
 				/* modify current state so wait bit is on and interrupts are enabled */
 			}

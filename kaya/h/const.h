@@ -156,5 +156,5 @@ and devince number in interruping devices bit map */
 #define MAXPROC 	20
 
 
-#define SUSPENDTIME 420420420420
+#define SUSPENDTIME 420420
 #endif
