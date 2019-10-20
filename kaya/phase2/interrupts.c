@@ -95,7 +95,7 @@ void InterruptHandler()
 	/*	deviceAddr = (device_t *)( busRegArea->devreg[index]);  should be the same as the calcuation as before, emphasis on should*/
 		if(lineNum == TERMINT)
 		{
-			if(deviceAddr->t_transm_status == 0x00000001)
+			if(deviceAddr->t_transm_status == READY)
 			{
 				index += NUMDEVICESPERTYPE; /* its a receive!*/
 				transmitBool = FALSE;
@@ -106,21 +106,43 @@ void InterruptHandler()
 		(*Sema4)++;
 		if((*Sema4) <= 0)
 		{
-			pcb_PTR Proc=removeBlocked(Sema4);
-			if(Proc!=NULL)
+			pcb_PTR proc=removeBlocked(Sema4);
+			if(proc!=NULL)
 			{
-				Proc->p_s.s_v0 = deviceAddr->d_status;
+				/* proc->p_s.s_v0 = deviceAddr->d_status; */
+				if(lineNum == TERMINT)
+				{
+					if(transmitBool)
+					{
+						proc->p_s.s_v0 = deviceAddr->t_transm_status; 
+					}
+					else 
+					{
+						proc->p_s.s_v0 = deviceAddr->t_recv_status;
+					}
+				}	
+				else
+				{
+					proc->p_s.s_v0 = deviceAddr->d_command; /* put this in const*/
+				}
 				softBlockCount--;
-				insertProcQ(&readyQ, Proc);
+				insertProcQ(&readyQ, proc);
 			}
 			
-			if(lineNum == TERMINT && transmitBool)
+			if(lineNum == TERMINT)
 			{
-				deviceAddr->t_transm_command = 0x00000001; 
+				if(transmitBool)
+				{
+					deviceAddr->t_transm_command = ACK; 
+				}
+				else 
+				{
+					deviceAddr->t_recv_command = ACK;
+				}
 			}	
 			else
 			{
-				deviceAddr->d_command= 0x00000001; /* put this in const*/
+				deviceAddr->d_command = ACK; /* put this in const*/
 			}
 		}	
 	}
