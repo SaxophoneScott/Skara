@@ -95,7 +95,7 @@ void InterruptHandler()
 	/*	deviceAddr = (device_t *)( busRegArea->devreg[index]);  should be the same as the calcuation as before, emphasis on should*/
 		if(lineNum == TERMINT)
 		{
-			if(deviceAddr->t_transm_status == READY)
+			if((deviceAddr->t_transm_status & MASKTRANSCHAR) == READY)
 			{
 				index += NUMDEVICESPERTYPE; /* its a receive!*/
 				transmitBool = FALSE;

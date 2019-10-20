@@ -110,6 +110,7 @@ and devince number in interruping devices bit map */
 #define NUMDEVICES 		8
 #define DEVICE0			0x00000001
 /* #define INTERRUPTDEVICES[NUMDEVICES]	 {0x00000001, 0x00000002, 0x00000004, 0x00000008, 0x00000010, 0x00000020, 0x00000040, 0x00000080} */
+#define MASKTRANSCHAR	0x0000000F
 
 /* device interrupts */
 #define DISKINT		3
