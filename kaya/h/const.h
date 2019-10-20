@@ -43,7 +43,7 @@
 #define CURRINTERRUPTSUNMASKED	0x00000001
 #define INTERRUPTMASKOFF 		0x00000000 	/* change this later maybe */
 #define INTERRUPTMASKON			0x0000FF00
-
+#define TEBITON				0x08000000	/* timer enable bit*/
 /* values for controlling bits in the cause register */
 #define PRIVILEDGEDINSTR		0x00000028
 
