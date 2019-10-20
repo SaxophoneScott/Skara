@@ -17,7 +17,7 @@
 #include "../h/types.h"
 #include "/usr/local/include/umps2/umps/libumps.e"
 
-#include "../phase2/p1test.e"
+#include "../e/p1test.e"
 
 typedef unsigned int devregtr;
 

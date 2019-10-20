@@ -94,51 +94,45 @@ void InterruptHandler()
 		index = (lineNum - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + devNum; /* calcuating index*/
 	/*	deviceAddr = (device_t *)( busRegArea->devreg[index]);  should be the same as the calcuation as before, emphasis on should*/
 		if(lineNum == TERMINT)
+		{
+			if(deviceAddr->t_transm_status == 0x00000001)
 			{
-				if(deviceAddr->t_transm_status == 0x00000001)
-				{
-					index += NUMDEVICESPERTYPE; /* its a receive!*/
-					transmitBool = FALSE;
-				} 
-				/* else we do nothing as its a trans-status*/
-			}
+				index += NUMDEVICESPERTYPE; /* its a receive!*/
+				transmitBool = FALSE;
+			} 
+			/* else we do nothing as its a trans-status*/
+		}
 		Sema4 = &(semaphoreArray[index]);
 		(*Sema4)++;
 		if((*Sema4) <= 0)
+		{
+			pcb_PTR Proc=removeBlocked(Sema4);
+			if(Proc!=NULL)
 			{
-				pcb_PTR Proc=removeBlocked(Sema4);
-				if(Proc!=NULL)
-				{
-						Proc->p_s.s_v0 = deviceAddr->d_status;
-						softBlockCount--;
-						insertProcQ(&readyQ, Proc);
-				}
-				
-				if(lineNum == TERMINT && transmitBool)
-					{
-						deviceAddr->t_transm_command = 0x00000001; 
-					}	
-					else
-					{
-						deviceAddr->d_command= 0x00000001; /* put this in const*/
-					}
-				}
+				Proc->p_s.s_v0 = deviceAddr->d_status;
+				softBlockCount--;
+				insertProcQ(&readyQ, Proc);
 			}
-				if(currentProcess == NULL)
-					{
-						Scheduler();  /* want to call scheduler if current process is null*/
-					}
-				else
-					{
-						STCK(INTERRUPTEND); 
-						LoadState(interruptOld); /* otherwise we want to return control to the process*/
-					}
-
-
-				
-
-
-
-				}
+			
+			if(lineNum == TERMINT && transmitBool)
+			{
+				deviceAddr->t_transm_command = 0x00000001; 
+			}	
+			else
+			{
+				deviceAddr->d_command= 0x00000001; /* put this in const*/
+			}
+		}	
+	}
+	if(currentProcess == NULL)
+	{
+		Scheduler();  /* want to call scheduler if current process is null*/
+	}
+	else
+	{
+		STCK(INTERRUPTEND); 
+		LoadState(interruptOld); /* otherwise we want to return control to the process*/
+	}
+}
 
 
