@@ -17,6 +17,8 @@
 #include "../h/types.h"
 #include "/usr/local/include/umps2/umps/libumps.e"
 
+#include "../phase2/p1test.e"
+
 typedef unsigned int devregtr;
 
 /* hardware constants */
@@ -127,6 +129,7 @@ void print(char *msg) {
 			PANIC();
 		s++;	
 	}
+	addokbuf("v at end of print");
 	SYSCALL(VERHOGEN, (int)&term_mut, 0, 0);				/* V(term_mut) */
 }
 
@@ -139,6 +142,8 @@ void test() {
 	SYSCALL(VERHOGEN, (int)&testsem, 0, 0);					/* V(testsem)   */
 
 	print("p1 v(testsem)\n");
+
+	addokbuf("finished print");
 
 	/* set up states of the other processes */
 
