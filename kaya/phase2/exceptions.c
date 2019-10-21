@@ -156,7 +156,6 @@ freePcb for each one */
 	processCount--;
 	IncrementProcessTime(process);
 	freePcb(process);*/
-	currentProcess = NULL;
 	Scheduler();
 
 }
