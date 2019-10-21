@@ -109,12 +109,12 @@ void SyscallHandler(){
 	if(userMode == 0) /* in kernel mode */
 	{
 		userMode = FALSE;
-		addokbuf("in kernel mode \n")
+		addokbuf("in kernel mode \n");
 	}
 	else
 	{
 		userMode = TRUE;
-		addokbuf("in user mode \n")
+		addokbuf("in user mode \n");
 	}
 	syscallOld->s_pc += 4;
 	if(l_a0 > 8 || (!userMode && 1 <= l_a0 && l_a0 <= 8))
