@@ -191,14 +191,6 @@ void addokbuf(char *strp) {
 	termprint(tstrp, 0);
 }
 
-void blah(unsigned int start)
-{
-	start = start;
-}
-void what()
-{
-}
-
 /* a procedure to print on terminal 0 */
 void print(char *msg) {
 
@@ -211,7 +203,6 @@ void print(char *msg) {
 	/*	addokbuf("we in this loop \n"); */
 		*(base + 3) = PRINTCHR | (((devregtr) *s) << BYTELEN);
 		status = SYSCALL(WAITIO, TERMINT, 0, 0);
-		blah(status);
 		if ((status & TERMSTATMASK) != RECVD){
 			addokbuf("AH \n");
 			PANIC();}
@@ -372,6 +363,7 @@ void p2() {
 	cpu_t	now1,now2;		/* times of day        */
 	cpu_t	cpu_t1,cpu_t2;	/* cpu time used       */
 
+	addokbuf("  in p2 currently");
 	SYSCALL(PASSERN, (int)&startp2, 0, 0);				/* P(startp2)   */
 
 	print("p2 starts\n");
@@ -379,7 +371,7 @@ void p2() {
 	/* initialize all semaphores in the s[] array */
 	for (i=0; i<= MAXSEM; i++)
 		s[i] = 0;
-
+	addokbuf(" maxsem was reached");
 	/* V, then P, all of the semaphores in the s[] array */
 	for (i=0; i<= MAXSEM; i++)  {
 		SYSCALL(VERHOGEN, (int)&s[i], 0, 0);			/* V(S[I]) */
@@ -418,7 +410,7 @@ void p2() {
 
 	SYSCALL(VERHOGEN, (int)&endp2, 0, 0);				/* V(endp2)     */
 	addokbuf("test1 \n");
-	what();
+	PANIC();
 	SYSCALL(TERMINATETHREAD, 0, 0, 0);			/* terminate p2 */
 	addokbuf("test2 \n");
 	/* just did a SYS2, so should not get to this point */
@@ -434,6 +426,7 @@ void p3() {
 	cpu_t	cpu_t1,cpu_t2;		/* cpu time used       */
 	int		i;
 
+	addokbuf("we in p3");
 	time1 = 0;
 	time2 = 0;
 
