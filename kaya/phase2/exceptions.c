@@ -8,8 +8,7 @@
 #include "../e/scheduler.e"
 #include "/usr/local/include/umps2/umps/libumps.e"
 
-char okbuf[2048];	
-char *mp = okbuf;		
+char okbuf[2048];			
 #define TRANSMITTED	5
 #define ACK	1
 #define PRINTCHR	2
