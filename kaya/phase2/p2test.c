@@ -115,8 +115,7 @@ void	p5sys(),p8root(),child1(),child2(),p8leaf();
 
 
 
-char okbuf[2048];
-char *mp = okbuf;			
+char okbuf[2048];			
 #define TRANSMITTED	5
 #define ACK	1
 #define PRINTCHR	2
@@ -191,13 +190,7 @@ void addokbuf(char *strp) {
 	termprint(tstrp, 0);
 }
 
-void blah(unsigned int start)
-{
-	start = start;
-}
-void what()
-{
-}
+
 
 /* a procedure to print on terminal 0 */
 void print(char *msg) {
@@ -208,16 +201,13 @@ void print(char *msg) {
 	
 	SYSCALL(PASSERN, (int)&term_mut, 0, 0);				/* P(term_mut) */
 	while (*s != EOS) {
-	/*	addokbuf("we in this loop \n"); */
 		*(base + 3) = PRINTCHR | (((devregtr) *s) << BYTELEN);
-		status = SYSCALL(WAITIO, TERMINT, 0, 0);
-		blah(status);
-		if ((status & TERMSTATMASK) != RECVD){
-			addokbuf("AH \n");
-			PANIC();}
+		status = SYSCALL(WAITIO, TERMINT, 0, 0);	
+		if ((status & TERMSTATMASK) != RECVD)
+			PANIC();
 		s++;	
 	}
-/*	addokbuf("v at end of print"); */
+	addokbuf("v at end of print");
 	SYSCALL(VERHOGEN, (int)&term_mut, 0, 0);				/* V(term_mut) */
 }
 
@@ -226,12 +216,12 @@ void print(char *msg) {
 /*                 p1 -- the root process                            */
 /*                                                                   */
 void test() {	
-	addokbuf("starting test \n");	
+	
 	SYSCALL(VERHOGEN, (int)&testsem, 0, 0);					/* V(testsem)   */
 
 	print("p1 v(testsem)\n");
 
-	addokbuf("finished print \n ");
+	addokbuf("finished print");
 
 	/* set up states of the other processes */
 
@@ -415,16 +405,13 @@ void p2() {
 
 	p1p2synch = 1;				/* p1 will check this */
 
-
 	SYSCALL(VERHOGEN, (int)&endp2, 0, 0);				/* V(endp2)     */
-	addokbuf("test1 \n");
-	what();
+
 	SYSCALL(TERMINATETHREAD, 0, 0, 0);			/* terminate p2 */
-	addokbuf("test2 \n");
+
 	/* just did a SYS2, so should not get to this point */
 	print("error: p2 didn't terminate\n");
 	PANIC();					/* PANIC!           */
-	addokbuf("what\n" );
 }
 
 
