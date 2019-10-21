@@ -22,7 +22,6 @@ HIDDEN void PassUpOrDie(state_PTR oldState, int exceptionType);
 HIDDEN void CopyState(state_PTR newState, state_PTR oldState);
 
 void SyscallHandler(){
-	addokbuf("\n sys call hander \n");
 	state_PTR syscallOld = (state_PTR) SYSCALLOLDAREA;
 	state_PTR programTrapOld = (state_PTR) PROGRAMTRAPOLDAREA;
 	unsigned int l_a0 = syscallOld -> s_a0;
