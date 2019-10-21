@@ -342,7 +342,6 @@ HIDDEN void GetCpuTime(state_PTR syscallOld)
 	time += (endTime - processStartTime);
 	/* process->p_totalTime += (endTime - processStartTime); */
 	syscallOld->s_v0 = time;
-	LoadState(syscallOld);
 }
 /*SYS7*/
 HIDDEN void WaitForClock(state_PTR syscallOld)
@@ -385,7 +384,6 @@ HIDDEN void BlockHelperFunction(state_PTR syscallOld, int* semaddr, pcb_PTR proc
 	Scheduler() */
 {
 	IncrementProcessTime(process);
-	CopyState(&(process->p_s), syscallOld);
 	insertBlocked(semaddr, process);
 	softBlockCount++;
 	currentProcess = NULL;
