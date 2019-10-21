@@ -190,8 +190,11 @@ void addokbuf(char *strp) {
 	termprint(tstrp, 0);
 }
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> 40ee113b2166ca7689327b411ae80c5be6fe6e40
 /* a procedure to print on terminal 0 */
 void print(char *msg) {
 
@@ -202,9 +205,16 @@ void print(char *msg) {
 	SYSCALL(PASSERN, (int)&term_mut, 0, 0);				/* P(term_mut) */
 	while (*s != EOS) {
 		*(base + 3) = PRINTCHR | (((devregtr) *s) << BYTELEN);
+<<<<<<< HEAD
 		status = SYSCALL(WAITIO, TERMINT, 0, 0);	
 		if ((status & TERMSTATMASK) != RECVD)
 			PANIC();
+=======
+		status = SYSCALL(WAITIO, TERMINT, 0, 0);
+		if ((status & TERMSTATMASK) != RECVD){
+			addokbuf("AH \n");
+			PANIC();}
+>>>>>>> 40ee113b2166ca7689327b411ae80c5be6fe6e40
 		s++;	
 	}
 	addokbuf("v at end of print");
@@ -362,6 +372,7 @@ void p2() {
 	cpu_t	now1,now2;		/* times of day        */
 	cpu_t	cpu_t1,cpu_t2;	/* cpu time used       */
 
+	addokbuf("  in p2 currently");
 	SYSCALL(PASSERN, (int)&startp2, 0, 0);				/* P(startp2)   */
 
 	print("p2 starts\n");
@@ -369,7 +380,7 @@ void p2() {
 	/* initialize all semaphores in the s[] array */
 	for (i=0; i<= MAXSEM; i++)
 		s[i] = 0;
-
+	addokbuf(" maxsem was reached");
 	/* V, then P, all of the semaphores in the s[] array */
 	for (i=0; i<= MAXSEM; i++)  {
 		SYSCALL(VERHOGEN, (int)&s[i], 0, 0);			/* V(S[I]) */
@@ -406,7 +417,12 @@ void p2() {
 	p1p2synch = 1;				/* p1 will check this */
 
 	SYSCALL(VERHOGEN, (int)&endp2, 0, 0);				/* V(endp2)     */
+<<<<<<< HEAD
 
+=======
+	addokbuf("test1 \n");
+	PANIC();
+>>>>>>> 40ee113b2166ca7689327b411ae80c5be6fe6e40
 	SYSCALL(TERMINATETHREAD, 0, 0, 0);			/* terminate p2 */
 
 	/* just did a SYS2, so should not get to this point */
@@ -421,6 +437,7 @@ void p3() {
 	cpu_t	cpu_t1,cpu_t2;		/* cpu time used       */
 	int		i;
 
+	addokbuf("we in p3");
 	time1 = 0;
 	time2 = 0;
 
