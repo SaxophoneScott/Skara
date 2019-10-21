@@ -8,7 +8,7 @@
 #include "../e/scheduler.e"
 #include "/usr/local/include/umps2/umps/libumps.e"
 
-char okbuf[2048];	
+/*char okbuf[2048];	
 char *mp = okbuf;		
 #define TRANSMITTED	5
 #define ACK	1
@@ -19,13 +19,10 @@ char *mp = okbuf;
 
 typedef unsigned int devreg;
 
-/* This function returns the terminal transmitter status value given its address */ 
 devreg termstat(memaddr * stataddr) {
 	return((*stataddr) & STATUSMASK);
 }
 
-/* This function prints a string on specified terminal and returns TRUE if 
- * print was successful, FALSE if not   */
 unsigned int termprint(char * str, unsigned int term) {
 	memaddr * statusp;
 	memaddr * commandp;
@@ -34,48 +31,36 @@ unsigned int termprint(char * str, unsigned int term) {
 	unsigned int error = FALSE;
 	
 	if (term < DEVPERINT) {
-		/* terminal is correct */
-		/* compute device register field addresses */
 		statusp = (devreg *) (TERM0ADDR + (term * DEVREGSIZE) + (TRANSTATUS * DEVREGLEN));
 		commandp = (devreg *) (TERM0ADDR + (term * DEVREGSIZE) + (TRANCOMMAND * DEVREGLEN));
 		
-		/* test device status */
 		stat = termstat(statusp);
 		if (stat == READY || stat == TRANSMITTED) {
-			/* device is available */
 			
-			/* print cycle */
 			while (*str != EOS && !error) {
 				cmd = (*str << CHAROFFSET) | PRINTCHR;
 				*commandp = cmd;
 
-				/* busy waiting */
 				stat = termstat(statusp);
 				while (stat == BUSY)
 					 stat = termstat(statusp);
 				
-				/* end of wait */
 				if (stat != TRANSMITTED)
 					error = TRUE;
 				else
-					/* move to next char */
 					str++;
 			} 
 		}
 		else
-			/* device is not available */
 			error = TRUE;
 	}
 	else
-		/* wrong terminal device number */
 		error = TRUE;
 
 	return (!error);		
 }
 
 
-/* This function placess the specified character string in okbuf and
-*	causes the string to be written out to terminal0 */
 void addokbuf(char *strp) {
 	char *tstrp = strp;
 	while ((*mp++ = *strp++) != '\0')
@@ -83,7 +68,7 @@ void addokbuf(char *strp) {
 	mp--;
 	termprint(tstrp, 0);
 }
-
+*/
 HIDDEN void CreateProcess(state_PTR syscallOld, state_PTR newState);
 HIDDEN void TerminateProcess(state_PTR syscallOld, pcb_PTR process);
 HIDDEN void HoneyIKilledTheKids(state_PTR syscallOld, pcb_PTR p);
@@ -110,7 +95,7 @@ void SyscallHandler(){
 	if(userMode == 0) /* in kernel mode */
 	{
 		userMode = FALSE;
-		addokbuf("in kernel mode \n");
+	/*	addokbuf("in kernel mode \n"); 8 */
 	}
 	else
 	{
@@ -122,6 +107,7 @@ void SyscallHandler(){
 	{
 		switch(l_a0){
 			case CREATEPROCESS:
+				addokbuf("\n create process - 1 \n ");
 				/* a1: has physical address of processor state area */
 				/* errors go in v0 as -1 or 0 otherwise */
 				/* non blocking*/
@@ -129,34 +115,42 @@ void SyscallHandler(){
 				break;
 			case TERMINATEPROCESS:
 			/* blocking */
+				addokbuf("\n  we got kill'n \n");
 				TerminateProcess(syscallOld, currentProcess);
 				break;
 			case VERHOGEN:
+				addokbuf("\n  verhogen - 3 \n ");
 			/* non blocking*/
 				Verhogen(syscallOld, (int*) l_a1);
 				break;
 			case PASSEREN:
+				addokbuf("\n passern  -4 \n ");
 			/* sometimes blocking*/
 				Passeren(syscallOld, (int*) l_a1);
 				break;
 			case EXCEPTIONSTATEVEC:
+				addokbuf("\n  exceptionstatevec - 5 \n ");
 			/* non blocking*/
 			/* pass up or die? */
 			 	ExceptionStateVec(syscallOld, l_a1, (memaddr) l_a2, (memaddr) l_a3);
 			 	break;
 			case GETCPUTIME: 
+				addokbuf("\n  getcputime - 6 \n ");
 			/* non blocking*/
 				GetCpuTime(syscallOld);
 				break;
 			case WAITFORCLOCK:
+				addokbuf("\n wait for clock - 7 \n ");
 			/* blocking*/
 				WaitForClock(syscallOld);
 				break;
 			case WAITFORIO:
+				addokbuf(" \n wait for io -8  \n ");
 			/* blocking */
 				WaitForIo(syscallOld, (int) l_a1, (int) l_a2, (int) l_a3);
 				break;
 			default:
+				addokbuf(" \n default - 9 \n ");
 			/* pass up or die*/
 				PassUpOrDie(syscallOld, SYSCALLEXCEPTION);
 

@@ -44,8 +44,11 @@ void InterruptHandler()
 	/* its the proccesor local timer!*/
 	if(lineNum == 1)
 	{
+		
 		IncrementProcessTime(currentProcess);
 		insertProcQ(&readyQ, currentProcess);
+		currentProcess = NULL;
+	/*	setTIMER(5000); */
 		Scheduler();
 
 	}
