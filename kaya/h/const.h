@@ -156,6 +156,8 @@ and devince number in interruping devices bit map */
 /* pcb values */
 #define MAXPROC 	20
 
-
-#define SUSPENDTIME 420420
+/* timing constants */
+#define PLTTIME 	5000
+#define INTERVALTIME	100000
+#define SUSPENDTIME 	420420
 #endif
