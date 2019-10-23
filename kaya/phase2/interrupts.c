@@ -7,6 +7,13 @@
 #include "../e/interrupts.e"
 #include "../e/scheduler.e"
 
+HIDDEN void DetermineLine(state_PTR interruptOld);
+HIDDEN void PLTInterrupt();
+HIDDEN void ITInterrupt();
+HIDDEN void DeviceInterrupt();
+HIDDEN void DetermineDevice(devregarea_t busRegArea);
+HIDDEN void whatTheHeckIsTheSemaddr(int* semaddr)
+
 void InterruptHandler()
 {
 	cpu_t INTERRUPTSTART;			/* start time of the interrupt handler */
@@ -32,7 +39,7 @@ void InterruptHandler()
 	/* it's a device line */
 	else
 	{
-		deviceInterrupt();
+		DeviceInterrupt();
 	}
 	/* we handled it, so now let's get back to processes */
 	if(currentProcess == NULL)
@@ -93,33 +100,7 @@ HIDDEN void ITInterrupt()
 	LDIT(100000);								/* reload the interval timer */
 }
 
-HIDDEN int determineDevice(devregarea_t* busRegArea)
-{
-	unsigned int devBitMap = busRegArea->interrupt_dev[lineNum - INITIALDEVLINENUM]; /* dev bit map for the line that has an interrupt */
-	int j = 0; 							/* loop control variable for determining interrupt device number */
-	unsigned int deviceOn = DEVICE0;	/* variable indicating that there is an interrupt on line i */
-	int foundDevice = FALSE; 			/* indicates whether or not the interrupt device has been found */
-	int devNum;							/* the highest priority device with interrupt */
-	unsigned int interruptOn;			/* indicates if there is an interrupt on device i */
-
-	/* find highest priority device with interrupt */
-	while(j < NUMDEVICES && !foundDevice)
-	{
-		devBitMap = devBitMap & MASKDEVBITMAP; 	/* zero out the irrelevant bits */
-		interruptOn = devBitMap & deviceOn; 	/* will be all 0s if there is NOT an interrupt on device i */
-		/* device i has an interrupt */
-		if(interruptOn != 0)
-		{
-			foundDevice = TRUE;
-			devNum = j;
-		}
-		j++; /* check the next device */
-		deviceOn = deviceOn << 1;
-	}
-	return devNum;
-}
-
-HIDDEN void deviceInterrupt()
+HIDDEN void DeviceInterrupt()
 {
 	devregarea_t* busRegArea = (devregarea_t*) RAMBASEADDR;
 	int devNum;							/* the highest priority device with interrupt */
@@ -191,6 +172,32 @@ HIDDEN void deviceInterrupt()
 			deviceAddr->d_command = ACK; /* put this in const*/
 		}
 	}	
+}
+
+HIDDEN int determineDevice(devregarea_t* busRegArea)
+{
+	unsigned int devBitMap = busRegArea->interrupt_dev[lineNum - INITIALDEVLINENUM]; /* dev bit map for the line that has an interrupt */
+	int j = 0; 							/* loop control variable for determining interrupt device number */
+	unsigned int deviceOn = DEVICE0;	/* variable indicating that there is an interrupt on line i */
+	int foundDevice = FALSE; 			/* indicates whether or not the interrupt device has been found */
+	int devNum;							/* the highest priority device with interrupt */
+	unsigned int interruptOn;			/* indicates if there is an interrupt on device i */
+
+	/* find highest priority device with interrupt */
+	while(j < NUMDEVICES && !foundDevice)
+	{
+		devBitMap = devBitMap & MASKDEVBITMAP; 	/* zero out the irrelevant bits */
+		interruptOn = devBitMap & deviceOn; 	/* will be all 0s if there is NOT an interrupt on device i */
+		/* device i has an interrupt */
+		if(interruptOn != 0)
+		{
+			foundDevice = TRUE;
+			devNum = j;
+		}
+		j++; /* check the next device */
+		deviceOn = deviceOn << 1;
+	}
+	return devNum;
 }
 
 HIDDEN void whatTheHeckIsTheSemaddr(int* semaddr)
