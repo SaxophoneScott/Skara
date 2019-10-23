@@ -1,4 +1,3 @@
-
 #include "../h/const.h"
 #include "../h/types.h"
 #include "../e/pcb.e"
@@ -9,42 +8,40 @@
 
 void Scheduler()
 {
-	pcb_PTR newProcess = removeProcQ(&readyQ);
+	pcb_PTR newProcess = removeProcQ(&readyQ);	/* try to get a new process */
 
-	/* the readyQ is empty :( */
+	/* case: there are no ready processes :( */
 	if(newProcess == NULL){
-		/* there are no jobs in the system */
+		/* case: there are no jobs in the system */
 		if(processCount == 0){
 			currentProcess = NULL;
 			HALT();
 		}
-		/* there are jobs somewhere */
+		/* case: there are jobs somewhere */
 		else{
+			/* case: we don't know where the jobs are though */
 			if(softBlockCount == 0){
 				currentProcess = NULL;
 				PANIC();
 			}
+			/* case: they're just blocked, so we'll wait for them to unblock */
 			else{
 				/* suspended animation */
-				/* currentProcess->p_s->s_status = ALLOFF | CURRINTERRUPTSUNMASKED | INTERRUPTMASKON; */
-				setSTATUS(ALLOFF | CURRINTERRUPTSUNMASKED | INTERRUPTMASKON);
+				/* enable all interrupts so that processes will get unblocked */
+				setSTATUS(ALLOFF | CURRINTERRUPTSUNMASKED | INTERRUPTMASKON);		
 				currentProcess = NULL;
 				setTIMER(SUSPENDTIME);
 				WAIT();
-				/* modify current state so wait bit is on and interrupts are enabled */
 			}
 		}
 
 	}
 
-	/* we got a ready process :) */
+	/* case: we got a ready process :) */
 	else{
 		currentProcess = newProcess;
-		/* put value on clock = 1 quantum */
-		setTIMER(5000); /* ?????? */
-		/* store off TOD */
-		/* currentProcess->p_startTime = STCK(TODLOADDR); */
-		STCK(processStartTime);
-		LoadState(&(currentProcess->p_s)); /* context switch! */
+		setTIMER(PLTTIME);					/* put value on clock = 1 quantum for process's turn */
+		STCK(processStartTime);				/* store off current time, so we can track time used */
+		LoadState(&(currentProcess->p_s)); 	/* start the new process -> context switch! */
 	}
 }
