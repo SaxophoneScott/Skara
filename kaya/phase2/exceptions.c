@@ -20,6 +20,7 @@ HIDDEN void WaitForIo(state_PTR syscallOld, int lineNum, int deviceNum, int term
 HIDDEN void BlockHelperFunction(state_PTR syscallOld, int* semaddr, pcb_PTR process);
 HIDDEN void PassUpOrDie(state_PTR oldState, int exceptionType);
 HIDDEN void CopyState(state_PTR newState, state_PTR oldState);
+HIDDEN void whatAboutThisSema4(int* semaphore);
 
 void SyscallHandler(){
 	state_PTR syscallOld = (state_PTR) SYSCALLOLDAREA;
@@ -182,10 +183,10 @@ HIDDEN void HoneyIKilledTheKids(state_PTR syscallOld, pcb_PTR p)
 	/* it's blocked */
 	{
 		int* semaddr = p->p_semAdd;
-		int firstDevice = semaphoreArray[0];
-		int lastDevice = semaphoreArray[SEMCOUNT - 2]; /* last device is second to last elem bc timer is last elem */
+		int* firstDevice = &(semaphoreArray[0]);
+		int* lastDevice = &(semaphoreArray[SEMCOUNT - 2]); /* last device is second to last elem bc timer is last elem */
 		outBlocked(p);
-		if(&firstDevice <= semaddr && semaddr <= &lastDevice)
+		if(firstDevice <= semaddr && semaddr <= lastDevice)
 		/* blocked on a device sema4 */
 		{
 			softBlockCount--;
@@ -266,8 +267,9 @@ HIDDEN void GetCpuTime(state_PTR syscallOld)
 /*SYS7*/
 HIDDEN void WaitForClock(state_PTR syscallOld)
 {
-	int semaphore = semaphoreArray[SEMCOUNT - 1]; /*pseudo-clock timer is last semaphore */
-	Passeren(syscallOld, &semaphore);
+	int* semaphore = &(semaphoreArray[SEMCOUNT - 1]); /*pseudo-clock timer is last semaphore */
+	whatAboutThisSema4(semaphore);
+	Passeren(syscallOld, semaphore);
 }
 /*SYS8*/
 HIDDEN void WaitForIo(state_PTR syscallOld, int lineNum, int deviceNum, int termRead)
@@ -343,4 +345,10 @@ HIDDEN void CopyState(state_PTR newState, state_PTR oldState)
 	{
 		newState->s_reg[i] = oldState->s_reg[i];
 	}
+}
+
+HIDDEN void whatAboutThisSema4(int* semaphore)
+{
+	int y = 0;
+	y++;
 }

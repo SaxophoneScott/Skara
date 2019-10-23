@@ -22,7 +22,7 @@ void InterruptHandler()
 	int lineNum; 					/* the highest priority line with interrupt */
 	int transmitBool = TRUE; 		/* assuming true because otherwise if its the othercase, we would want to change it to false*/
 	unsigned int interruptOn;		/* variable indicating if there is an interrupt on that line */
-	device_t* deviceAddr;			
+	device_t* deviceAddr;
 	int index;
 	int * Sema4;
 
@@ -54,15 +54,16 @@ void InterruptHandler()
 	/* its the interval timer!*/
 	if(lineNum == 2)
 	{
-		int sema4=semaphoreArray[SEMCOUNT-1];
-		whatsTheSema4(&sema4);
-		while(sema4<0)
+		int* sema4 = &(semaphoreArray[SEMCOUNT-1]);
+		whatsTheSema4(sema4);
+		while((*sema4) < 0)
 		{
-			sema4++;
-			pcb_PTR p=removeBlocked(&sema4);
+			(*sema4)++;
+			pcb_PTR p=removeBlocked(sema4);
 			insertProcQ(&readyQ, p);
 		}
-		semaphoreArray[SEMCOUNT-1]= 0;
+		(*sema4) = 0;
+		/* semaphoreArray[SEMCOUNT-1]= 0; */
 		LDIT(100000);
 
 
