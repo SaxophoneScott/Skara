@@ -10,80 +10,79 @@
 
 
 /* phase 2 global variables */
-int processCount;
-int softBlockCount;
-pcb_PTR currentProcess;
-pcb_PTR readyQ;
-/* the order of devices on the array is as follows: 
-	[8 disk devices, 8 tape devices, 8 network adapters, 8 printer devices, 8 terminal devices, timer] */
-int semaphoreArray[SEMCOUNT]; 
-cpu_t processStartTime;
+int processCount;					/* # processes in the system */
+int softBlockCount;					/* # processes blocked */
+pcb_PTR currentProcess;				/* the current running process */
+cpu_t processStartTime;				/* time the current running process started its turn */
+pcb_PTR readyQ;						/* the queue of ready processes */
+int semaphoreArray[SEMCOUNT]; 		/* semaphore for each device and the interval timer, organized as follows: 
+									[8 disk devices, 
+									8 tape devices, 
+									8 network adapters, 
+									8 printer devices, 
+									8 terminal devices (transmit)
+									8 terminal devices (receive), 
+									interval timer] */
+
 
 HIDDEN void initializeNewArea(state_PTR memArea, memaddr handlerName, memaddr sp, unsigned int status);
 extern void test();
 
 void main(){
-	/* populate 4 new areas in low memory:
-		set stack pointer to last page of physcial memory (RAMTOP) (same for all)
-		set PC to appropriate function for handler of each
-		set status reg: VM off, Interrupts masked, Supervisor mode on (same for all) */
+	int i;																		/* loop control variable to initialize sema4s */
+	devregarea_t* busRegArea = (devregarea_t*) RAMBASEADDR; 					/* rambase address */
+	memaddr ramtop = busRegArea->rambase + busRegArea->ramsize; 				/* ramtop address */
+	/* status for the 4 new areas, represents VM off, interrupts masked, kernel mode on, and interval timer enabled */
+	unsigned int statusRegValue = ALLOFF | INITVMOFF | KERNELON | INTERRUPTSMASKED | TEBITON; 
+	pcb_PTR initialProc;														/* system's first process */
 
-	devregarea_t* busRegArea = (devregarea_t*) RAMBASEADDR; /* rambase address */
-	memaddr ramtop = busRegArea->rambase + busRegArea->ramsize; /* ramtop address */
-
-	unsigned int statusRegValue = ALLOFF | INITVMOFF | KERNELON | INTERRUPTSMASKED | TEBITON; /* represents VM off, interrupts masked, and kernel mode on */
-
-	int i;
-
-	pcb_PTR initialProc;
-
+	/* initialize the 4 new areas in low order memory with:
+		stack pointer: last page of physical memory,
+		PC: appropriate handler function in exceptions.c/interrupts.c (always set t9 to be the same),
+		status reg: VM off, interrupts masked, kernel mode on, and interval timer enabled */
 	initializeNewArea((state_PTR) SYSCALLNEWAREA, (memaddr) SyscallHandler, (memaddr) ramtop, statusRegValue);
 	initializeNewArea((state_PTR) PROGRAMTRAPNEWAREA, (memaddr) ProgramTrapHandler, (memaddr) ramtop, statusRegValue);
 	initializeNewArea((state_PTR) TLBMANAGEMENTNEWAREA, (memaddr) TLBManagementHandler, (memaddr) ramtop, statusRegValue);
 	initializeNewArea((state_PTR) INTERRUPTNEWAREA, (memaddr) InterruptHandler, (memaddr) ramtop, statusRegValue); /* mikey had this one as a STST(), not sure if this the case, but if this doenst work maybe try this instead? */
 	
-	/* initialize data structures */
+	/* initialize phase 1 data structures */
 	initPcbs();
 	initASL();
 
-	/* initialize globals */
+	/* initialize phase 2 globals */
 	processCount = 0;
 	softBlockCount = 0;
 	currentProcess = NULL;
-	readyQ = mkEmptyProcQ();
 	processStartTime = 0;
+	readyQ = mkEmptyProcQ();
 
 	/* initialize nucleus maintained semaphores */
 	for(i=0; i < SEMCOUNT; i++){
 		semaphoreArray[i] = 0;
 	}
 
-	initialProc = allocPcb(); /* initial process */
-	/* initialize its state: 
-		set stack pointer to penultimate page of physical memory
-		set PC to p2test
-		set status: VM off, Interrupts enabled/unmasked, Supervisor mode on */
+	initialProc = allocPcb();
+	/* initialize first process's state with: 
+		stack pointer: penultimate page of physical memory,
+		PC: phase 2 test function (always set t9 to be the same)
+		status reg: VM off, interrupts unmasked, kernel mode on, and timer enabled */
 	initialProc->p_s.s_sp = ramtop - PAGESIZE;
-	initialProc->p_s.s_t9= (memaddr) test;
-	initialProc->p_s.s_pc = (memaddr) test; /* change based on name */
+	initialProc->p_s.s_t9 = (memaddr) test;	
+	initialProc->p_s.s_pc = (memaddr) test;
 	initialProc->p_s.s_status = ALLOFF | INITVMOFF | INTERRUPTSUNMASKED | KERNELON | TEBITON;
 
 	processCount++;
-
 	insertProcQ(&readyQ, initialProc);
-	LDIT(100000); /*setting the clock timer before scheduler*/
-	Scheduler();
+	LDIT(INTERVALTIME); 					/* set initial time to interval timer */
+	Scheduler();							/* schedule a process to run */
 }
 
 HIDDEN void initializeNewArea(state_PTR memArea, memaddr handlerName, memaddr sp, unsigned int status)
 {
 	/* initialize the new area */
-	/* set PC to handler function */
 	state_PTR newMemArea = memArea;
-	newMemArea->s_pc = handlerName; /* in exceptions.c */
-	newMemArea->s_t9 = handlerName; /* always set t9 to be the same as pc */
-	/* set stack pointer to last page of physcial memory (RAMTOP) */
-	newMemArea->s_sp = sp;
-	/* set status reg: VM off, Interrupts masked, Supervisor mode on */
-	newMemArea->s_status = status; /* setStatus?? */
+	newMemArea->s_pc = handlerName; 	/* set PC to handler function */
+	newMemArea->s_t9 = handlerName; 	/* always set t9 to be the same as pc */
+	newMemArea->s_sp = sp;				/* set stack pointer */
+	newMemArea->s_status = status;		/* set status */
 }
