@@ -14,8 +14,10 @@
 *	The scheduler includes exceptions.e, initial.e, pcb.e, types.h, const.h , and the umps2 library to  control execution of the operating system                               	*
 * 	The scheduler implements 4 global variables, ReadyQueue, Current Process, Process Count, and Soft-block count 																		*
 *   																																																														*
-*    The scheduler is the first external program that Intial.c calls.     																																				*
-*                      																																																										*
+*    The scheduler is the first external program that Intial.c calls.     																																				*			
+*																																																															*
+*	The Scheduler runs test() as its main program, and continues to schedule processes until the test() program finishes execution. 													*
+* After test() ends, the scheduler is halted, as there are no process in the system.																															*                      																																																										*
 *																																															                                                            	*
 ***********************************************************************************************************************************************/
 
@@ -32,8 +34,12 @@
 /* Void Scheduler()
 
 	Scheduler takes the first process off the ready queue and performs an action depending on if it was successful on taking a process off. 
-	If it was not successful, then look at the global variables set in initial.c to determine if we are done/halt,
-	if we should wait for a process to become unblocked, and a softblockcount >1, or panic() , when process >1 and there are no process blocked. 
+	If it was not successful, then look at the global variables set in initial.c to determine if we are 
+	done/halt - no currentprocess  = 0;
+	panic - currentprocess >1 and softblock count = 0; 
+	wait - currentprocess >1 and softblock count >1
+
+	when we halt, that means there are no process in the scheduler, and means the main God process, has finished. 
 
 	when it is succesful in getting a process, then set the current process to this new process, set the timer, store the time of day clock,
 	and load the processer state, and allow it to run.
