@@ -29,9 +29,9 @@ HIDDEN void initializeNewArea(state_PTR memArea, memaddr handlerName, memaddr sp
 extern void test();
 
 void main(){
-	int i;																		/* loop control variable to initialize sema4s */
-	devregarea_t* busRegArea = (devregarea_t*) RAMBASEADDR; 					/* rambase address */
-	memaddr ramtop = busRegArea->rambase + busRegArea->ramsize; 				/* ramtop address */
+	int i;															/* loop control variable to initialize sema4s */
+	devregarea_t* busRegArea = (devregarea_t*) RAMBASEADDR; 		/* rambase address */
+	memaddr ramtop = busRegArea->rambase + busRegArea->ramsize; 	/* ramtop address */
 	/* status for the 4 new areas, represents VM off, interrupts masked, kernel mode on, and interval timer enabled */
 	unsigned int statusRegValue = ALLOFF | INITVMOFF | KERNELON | INTERRUPTSMASKED | TEBITON; 
 	pcb_PTR initialProc;														/* system's first process */
@@ -73,16 +73,16 @@ void main(){
 
 	processCount++;
 	insertProcQ(&readyQ, initialProc);
-	LDIT(INTERVALTIME); 					/* set initial time to interval timer */
-	Scheduler();							/* schedule a process to run */
+	LDIT(INTERVALTIME); 											/* set initial time to interval timer */
+	Scheduler();													/* schedule a process to run */
 }
 
 HIDDEN void initializeNewArea(state_PTR memArea, memaddr handlerName, memaddr sp, unsigned int status)
 {
 	/* initialize the new area */
 	state_PTR newMemArea = memArea;
-	newMemArea->s_pc = handlerName; 	/* set PC to handler function */
-	newMemArea->s_t9 = handlerName; 	/* always set t9 to be the same as pc */
-	newMemArea->s_sp = sp;				/* set stack pointer */
-	newMemArea->s_status = status;		/* set status */
+	newMemArea->s_pc = handlerName; 								/* set PC to handler function */
+	newMemArea->s_t9 = handlerName; 								/* always set t9 to be the same as pc */
+	newMemArea->s_sp = sp;											/* set stack pointer */
+	newMemArea->s_status = status;									/* set status */
 }

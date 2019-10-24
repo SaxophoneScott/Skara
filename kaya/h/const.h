@@ -58,6 +58,7 @@
 	The order of the semaphore array is as follows:	
 		[8 disk devices, 8 tape devices, 8 network adapters, 8 printer devices, 8 terminal device transmitters, 8 terminal device receivers, timer] */
 #define SEMCOUNT 			49
+#define ITSEMINDEX			48
 #define INITIALDEVLINENUM 	3
 #define NUMDEVICESPERTYPE 	8
 #define BASEDEVICEADDRESS	0x10000050
@@ -73,6 +74,11 @@
 #define	GETCPUTIME			6
 #define WAITFORCLOCK		7
 #define WAITFORIO			8
+/* other important syscall values */
+#define MINSYSCALL			1
+#define MAXSYSCALL			8
+#define SYS1FAIL			-1
+#define SYS1SUCCESS			0
 
 /* exception types */
 #define TLBEXCEPTION			0
@@ -105,6 +111,8 @@ and devince number in interruping devices bit map */
 #define MASKCAUSEREG	0x0000FF00
 #define NUMLINES		8
 #define LINE0			0x00000100
+#define PLTLINE			1
+#define ITLINE 			2
 /* #define INTERRUPTLINES[NUMLINES]	{0x00000100, 0x00000200, 0x00000400, 0x00000800, 0x00001000, 0x00002000, 0x00004000, 0x00008000} */
 #define MASKDEVBITMAP	0x000000FF
 #define NUMDEVICES 		8
@@ -157,7 +165,7 @@ and devince number in interruping devices bit map */
 #define MAXPROC 	20
 
 /* timing constants */
-#define PLTTIME 	5000
+#define PLTTIME 		5000
 #define INTERVALTIME	100000
 #define SUSPENDTIME 	420420
 #endif

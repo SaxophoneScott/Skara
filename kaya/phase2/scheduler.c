@@ -8,7 +8,7 @@
 
 void Scheduler()
 {
-	pcb_PTR newProcess = removeProcQ(&readyQ);	/* try to get a new process */
+	pcb_PTR newProcess = removeProcQ(&readyQ);						/* try to get a new process */
 
 	/* case: there are no ready processes :( */
 	if(newProcess == NULL){
@@ -40,8 +40,8 @@ void Scheduler()
 	/* case: we got a ready process :) */
 	else{
 		currentProcess = newProcess;
-		setTIMER(PLTTIME);					/* put value on clock = 1 quantum for process's turn */
-		STCK(processStartTime);				/* store off current time, so we can track time used */
-		LoadState(&(currentProcess->p_s)); 	/* start the new process -> context switch! */
+		setTIMER(PLTTIME);											/* put value on clock = 1 quantum for process's turn */
+		STCK(processStartTime);										/* store off current time, so we can track time used */
+		LoadState(&(currentProcess->p_s)); 							/* start the new process -> context switch! */
 	}
 }
