@@ -29,7 +29,7 @@ void InterruptHandler()
 	{
 		causeReg = causeReg & MASKCAUSEREG; 						/* zero out irrelevant bits */
 		interruptOn = causeReg & lineOn; 							/* all 0s if there is NOT an interrupt on line i */
-		
+
 		/* case: line i has an interrupt */
 		if(interruptOn != 0x00000000)
 		{
@@ -54,12 +54,12 @@ void InterruptHandler()
 	if(lineNum == ITLINE)
 	{
 		int* sema4 = &(semaphoreArray[ITSEMINDEX]);					/* interval timer's semaddr */
-
+		pcb_PTR p;
 		/* unblock all the processes that were waiting for the clock */
 		while((*sema4) < 0)
 		{
 			(*sema4)++;
-			pcb_PTR p = removeBlocked(sema4);
+			p = removeBlocked(sema4);
 			insertProcQ(&readyQ, p);
 		}
 		(*sema4) = 0;
@@ -80,7 +80,7 @@ void InterruptHandler()
 		{
 			devBitMap = devBitMap & MASKDEVBITMAP; 					/* zero out irrelevant bits */
 			interruptOn = devBitMap & deviceOn; 					/* all 0s if there is NOT an interrupt on device i */
-			
+
 			/* case: device i has an interrupt */
 			if(interruptOn != 0)
 			{
@@ -95,7 +95,7 @@ void InterruptHandler()
 		deviceAddr = (device_t*) (BASEDEVICEADDRESS + ((lineNum - INITIALDEVLINENUM) * DEVICETYPESIZE) + (devNum * DEVICESIZE)); 
 		index = (lineNum - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + devNum; /* calcuating index */
 		/*	deviceAddr = (device_t *)( busRegArea->devreg[index]);  should be the same as the calcuation as before, emphasis on should*/
-		
+
 		/* case: it's a terminal device */
 		if(lineNum == TERMINT)
 		{
@@ -104,7 +104,7 @@ void InterruptHandler()
 			{
 				index += NUMDEVICESPERTYPE; 						/* modify index to get second set of terminal device sema4s (i.e. receive sema4s) */
 				transmitBool = FALSE;
-			} 
+			}
 			/* else we do nothing as its a trans-status*/
 		}
 
@@ -131,7 +131,7 @@ void InterruptHandler()
 					{
 						proc->p_s.s_v0 = deviceAddr->t_recv_status;
 					}
-				}	
+				}
 				/* case: it's not a terminal device */
 				else
 				{
@@ -143,7 +143,7 @@ void InterruptHandler()
 				softBlockCount--;
 				insertProcQ(&readyQ, proc);
 			}
-			
+
 			/* now let's acknowledge the interrupt */
 			/* case: it's a terminal device */
 			if(lineNum == TERMINT)
@@ -151,31 +151,32 @@ void InterruptHandler()
 				/* case: it's a transmit */
 				if(transmitBool)
 				{
-					deviceAddr->t_transm_command = ACK; 
+					deviceAddr->t_transm_command = ACK;
 				}
 				/* case: it's a receive */
-				else 
+				else
 				{
 					deviceAddr->t_recv_command = ACK;
 				}
-			}	
+			}
 			/* case: it's not a terminal device */
 			else
 			{
 				deviceAddr->d_command = ACK; /* put this in const*/
 			}
-		}	
+		}
 	}
 
 	/* we're done here, so let's get another process up and running */
 	/* case: there was no process that got interrupted */
 	if(currentProcess == NULL)
 	{
-		Scheduler();  												/* schedule a new process to run */
+		Scheduler();
+	}											/* schedule a new process to run */
 	/* case: a process got interrupted */
 	else
 	{
-		STCK(INTERRUPTEND); 
+		STCK(INTERRUPTEND);
 		LoadState(interruptOld); 									/* return control to the interrupted process*/
 	}
 }
