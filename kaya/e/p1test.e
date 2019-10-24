@@ -3,10 +3,11 @@
 
 /************************** P1TEST.E ******************************
 *
-*  The externals declaration file for the Active Semaphore List
+*  The externals declaration file for the  P1Test.e
 *    Module.
 *
-*  Written by Mikeyg
+*  Written by Scott Harrington and Kara Schatz
+*  This was used to addokbuf to p2test()
 */
 
 #include "../h/types.h"
