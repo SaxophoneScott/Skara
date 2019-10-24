@@ -20,6 +20,12 @@ HIDDEN void BlockHelperFunction(state_PTR syscallOld, int* semaddr, pcb_PTR proc
 HIDDEN void PassUpOrDie(state_PTR oldState, int exceptionType);
 HIDDEN void CopyState(state_PTR newState, state_PTR oldState);
 
+void setPriv(unsigned int cause)
+{
+	int y = 0;
+	y++;
+}
+
 void SyscallHandler(){
 	state_PTR syscallOld = (state_PTR) SYSCALLOLDAREA;	/* state of the process issuing a syscall */
 
@@ -29,11 +35,37 @@ void SyscallHandler(){
 	unsigned int l_a2 = syscallOld -> s_a2;
 	unsigned int l_a3 = syscallOld -> s_a3;
 
-	int userMode = currentProcess->p_s.s_status & KERNELOFF;	/* will be all 0s if the process was in kernel mode */
+	unsigned int KUMode = currentProcess->p_s.s_status & KERNELOFF;	/* will be all 0s if the process was in kernel mode */
+	int userMode;
+	if(KUMode == 0)
+	{
+		userMode = FALSE;
+	}
+	else
+	{
+		userMode = TRUE;
+	}
+
 	syscallOld->s_pc += WORDLEN;								/* increment the pc, so the process will move on when it starts again */
 	
 	/* case: the process had permission to make the syscall (1-8 with kernel mode or >9) */
-	if(l_a0 > 8 || (!userMode && 1 <= l_a0 && l_a0 <= 8))
+	/* if(l_a0 > 8 || (!userMode && 1 <= l_a0 && l_a0 <= 8)) */
+	if((userMode && 1 <= l_a0) && l_a0 <= 8)
+	{
+		/* treat this as a program trap */
+		state_PTR programTrapOld;
+		/* case: the process has no set up a program trap exception state vector */
+		if((currentProcess->oldAreas[PROGRAMTRAPEXCEPTION] == NULL) || (currentProcess->newAreas[PROGRAMTRAPEXCEPTION] == NULL)){
+			programTrapOld = (state_PTR) PROGRAMTRAPOLDAREA;					/* use plain old progOld instead */
+		/* case: PASS UP -  an exception state vector has been set up */
+		} else {
+			programTrapOld = currentProcess->oldAreas[PROGRAMTRAPEXCEPTION];	/* use theirs then */
+		}
+		programTrapOld->s_cause = ALLOFF | PRIVILEDGEDINSTR;		/* set cause as priviledged instruction */
+		ProgramTrapHandler();
+	}
+	/* case: priviledged call but no permissions (i.e. 1-8 in user mode) */
+	else
 	{
 		/* determine which syscall from a0 and handle it */
 		switch(l_a0){ 
@@ -94,21 +126,6 @@ void SyscallHandler(){
 				PassUpOrDie(syscallOld, SYSCALLEXCEPTION);
 
 		}
-	}
-	/* case: priviledged call but no permissions (i.e. 1-8 in user mode) */
-	else
-	{
-		/* treat this as a program trap */
-		state_PTR programTrapOld;
-		/* case: the process has no set up a program trap exception state vector */
-		if((currentProcess->oldAreas[PROGRAMTRAPEXCEPTION] == NULL) || (currentProcess->newAreas[PROGRAMTRAPEXCEPTION] == NULL)){
-			programTrapOld = (state_PTR) PROGRAMTRAPOLDAREA;					/* use plain old progOld instead */
-		/* case: PASS UP -  an exception state vector has been set up */
-		} else {
-			programTrapOld = currentProcess->oldAreas[PROGRAMTRAPEXCEPTION];	/* use theirs then */
-		}
-		programTrapOld->s_cause = ALLOFF | PRIVILEDGEDINSTR;		/* set cause as priviledged instruction */
-		ProgramTrapHandler();
 	}
 }
 
