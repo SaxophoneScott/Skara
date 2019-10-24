@@ -1,3 +1,31 @@
+/****************************** Execptions.c ******************************
+* written by Scott Harrington and Kara Schatz                      
+Purpose: Exceptions.c holds the foundations of the SYSCALL exceptions, Program Trap exceptions, and TLB Management exceptions.
+Whenever a process invokes either a SYSCALL, or breaks a fundamental rule of the operating system, then the appropriate handler is invoked.  
+
+SYSCALL exceptions are raised when a process executes a SYSACLL assembler instruction. When looking at a SYSCALL exception, 
+we peek into the a0 register to determine which SYSCALL instruction is being called, as well as the status of SycallOld to determine if its in kernel mode or in user mode.
+If the instruction called in a0 is between 1-8 and kernel mode is on, then the corresponding SYSCALL instruction executes,
+ otherwise there is an attempt to call a reserved instruction, and a Program Trap occurs.  When an attempt is made to call a sys 9 and above,
+ a SYSCALL exception is raised, due to the occurrence that those SYSCALL have not been defined yet.
+
+Declared SYSCALL excpetions
+1-	Create Process, 2- Termiante, 3- Verhogen, 4- Passeren, 5- Specify Exception State Vector, 6- Get Cpu Time, 7-Wait For Clock, 8- Wait for IO
+
+Program Trap exceptions are raised when a process attempts to perfume an illegal action/undefined action.
+ These Program Trap exceptions include Address Errors, Bus Errors, Reserved Instruction, Coprocessor Unstable and Arithmetic overflow. 
+
+TLB Management Exceptions are raised when a process attempts to translate a virtual address into its corresponding physical address. 
+Such exceptions include TLB modification, TLB invalid, Bad PgtBl, and PTE-MISS.
+
+Whenever an error exception is raised, (Sycall 1-8 in user mode, Syscall 9+, Program traps exceptions, and TLB management exceptions) 
+Pass up or die is called with the appropriate exception type.  The process will then be either passed up, meaning that earlier we declared a sys5 on the process, 
+and the process will then continue executing form the appropriate state. Otherwise, we have not called sys5, 
+meaning there is no state area to load, and we sys2 the process, terminate it and its child processes.  
+
+
+*******************************************************************/
+
 #include "../h/const.h"
 #include "../h/types.h"
 #include "../e/pcb.e"
