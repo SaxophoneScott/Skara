@@ -7,6 +7,8 @@
 #include "../e/interrupts.e"
 #include "../e/scheduler.e"
 
+HIDDEN int DetermineLine(unsigned int causeReg);
+
 void InterruptHandler()
 {
 	cpu_t INTERRUPTSTART;											/* start time of interrupt handler */
@@ -14,31 +16,11 @@ void InterruptHandler()
 	STCK(INTERRUPTSTART);
 	state_PTR interruptOld = (state_PTR) INTERRUPTOLDAREA;			/* state of the interrupted process */
 	unsigned int causeReg = interruptOld->s_cause;
-	int i = 0;														/* loop control variable for determining interrupt line number */
-	unsigned int lineOn = LINE0;									/* indicates an interrupt on line i */
-	int foundLine = FALSE; 											/* true if the interrupting line has been found, false otherwise */
 	int lineNum; 													/* highest priority line with interrupt */
 	int transmitBool = TRUE; 										/* true if an interrupt on line 7 is transmit, false if receive */
 	unsigned int interruptOn;										/* all 0s if there is NOT an interrupt on line i */
-	device_t* deviceAddr;											/* address for device with interrupt */
-	int index;														/* index of the device's sema4 */
-	int * Sema4;													/* device's sema4 */
-
-	/* find highest priority line with interrupt */
-	while((i < NUMLINES) && (!foundLine))
-	{
-		causeReg = causeReg & MASKCAUSEREG; 						/* zero out irrelevant bits */
-		interruptOn = causeReg & lineOn; 							/* all 0s if there is NOT an interrupt on line i */
-
-		/* case: line i has an interrupt */
-		if(interruptOn != 0x00000000)
-		{
-			foundLine = TRUE;
-			lineNum = i;
-		}
-		i++; 														/* check the next line */
-		lineOn = lineOn << 1;
-	}
+	
+	lineNum = DetermineLine(causeReg);
 
 	/* one of the lines had an interrupt, so let's handle it */
 	/* case: it's the proccesor local timer */
@@ -74,6 +56,9 @@ void InterruptHandler()
 		unsigned int deviceOn = DEVICE0;							/* indicates an interrupt on device i */
 		int foundDevice = FALSE; 									/* true if the interrupting device has been found, false otherwise */
 		int devNum;													/* highest priority device with interrupt */
+		device_t* deviceAddr;										/* address for device with interrupt */
+		int index;													/* index of the device's sema4 */
+		int * Sema4;												/* device's sema4 */
 
 		/* find highest priority device with interrupt */
 		while(j < NUMDEVICES && !foundDevice)
@@ -179,4 +164,30 @@ void InterruptHandler()
 		STCK(INTERRUPTEND);
 		LoadState(interruptOld); 									/* return control to the interrupted process*/
 	}
+}
+
+HIDDEN int DetermineLine(unsigned int causeReg)
+{
+	int i = 0;														/* loop control variable for determining interrupt line number */
+	unsigned int lineOn = LINE0;									/* indicates an interrupt on line i */
+	int foundLine = FALSE; 											/* true if the interrupting line has been found, false otherwise */
+	int lineNum; 													/* highest priority line with interrupt */
+
+	/* find highest priority line with interrupt */
+	while((i < NUMLINES) && (!foundLine))
+	{
+		causeReg = causeReg & MASKCAUSEREG; 						/* zero out irrelevant bits */
+		interruptOn = causeReg & lineOn; 							/* all 0s if there is NOT an interrupt on line i */
+
+		/* case: line i has an interrupt */
+		if(interruptOn != 0x00000000)
+		{
+			foundLine = TRUE;
+			lineNum = i;
+		}
+		i++; 														/* check the next line */
+		lineOn = lineOn << 1;
+	}
+
+	return lineNum;
 }
