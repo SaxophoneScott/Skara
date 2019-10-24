@@ -99,8 +99,14 @@ void SyscallHandler(){
 	else
 	{
 		/* treat this as a program trap */
-		state_PTR programTrapOld = (state_PTR) PROGRAMTRAPOLDAREA;
-		CopyState(programTrapOld, syscallOld);						/* copy process state into program trap old area */
+		state_PTR programTrapOld;
+		/* case: the process has no set up a program trap exception state vector */
+		if((currentProcess->oldAreas[exceptionType] == NULL) || (currentProcess->newAreas[exceptionType] == NULL)){
+			programTrapOld = (state_PTR) PROGRAMTRAPOLDAREA;					/* use plain old progOld instead */
+		/* case: PASS UP -  an exception state vector has been set up */
+		} else {
+			programTrapOld = currentProcess->oldAreas[PROGRAMTRAPEXCEPTION];	/* use theirs then */
+		}
 		programTrapOld->s_cause = ALLOFF | PRIVILEDGEDINSTR;		/* set cause as priviledged instruction */
 		ProgramTrapHandler();
 	}
@@ -255,6 +261,7 @@ HIDDEN void ExceptionStateVec(state_PTR syscallOld, unsigned int exceptionType, 
 	{
 		currentProcess->oldAreas[exceptionType] = (state_PTR) oldStateLoc;
 		currentProcess->newAreas[exceptionType] = (state_PTR) newStateLoc;
+		LoadState(syscallOld);
 	}
 	/* case: process has already specified one, so kill it */
 	else
@@ -291,7 +298,7 @@ HIDDEN void WaitForIo(state_PTR syscallOld, int lineNum, int deviceNum, int term
 	/* case: it's a terminal read */
 	if(termRead)	
 	{
-		index += NUMDEVICESPERTYPE;							/* modify index to get second set of terminal device sema4s (i.e. receipt sema4s) */
+		index += NUMDEVICESPERTYPE;							/* modify index to get second set of terminal device sema4s (i.e. receive sema4s) */
 	}
 
 	semaddr = &semaphoreArray[index];
@@ -336,7 +343,7 @@ HIDDEN void PassUpOrDie(state_PTR oldState, int exceptionType)
 	/* case: DIE - an exception state vector (SYS5) has not be set up */
 	if((currentProcess->oldAreas[exceptionType] == NULL) || (currentProcess->newAreas[exceptionType] == NULL)){
 		TerminateProcess(oldState, currentProcess);
-	/* case: PASS UP -  an exception state has been set up */
+	/* case: PASS UP -  an exception state vector has been set up */
 	} else {
 		CopyState(currentProcess->oldAreas[exceptionType], oldState);
 		CopyState(&(currentProcess->p_s), currentProcess->newAreas[exceptionType]);
