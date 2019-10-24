@@ -4,7 +4,7 @@
 *																																																															*
 * 	Purpose: Implements A fully functional scheduler, using Halt(), Wait(), Panic(), and LoadState() 																									*
 *  to control the process flow of the Operating system. The scheduler controls the flow of processes 																								*
-*	after the current process causes an exception and the exception raised causes the process to block, operating 																			* 
+*	after the current process causes an exception and the exception raised causes the process to block, or operating 																		* 
 *	when the interrupt handler causes an exception. The schedular controls the control flow of the 																									*
 *	operating system, as it takes the top process off the ready queue, and allows it to run. 																												*
 *																																																															*
