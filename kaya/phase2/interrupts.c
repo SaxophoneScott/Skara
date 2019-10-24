@@ -1,3 +1,44 @@
+/************************************************************* Interrupts.c *********************************************************************
+* written by Scott Harrington and Kara Schatz                      																				
+* 																																				
+*																					
+* 	Purpose: Implements an interrupt handler that has the capability to handle 3 main types of interrupts:
+*		1.) Processor Local Timer interrupts (PLT)
+*		2.) Interval Timer interrupts (IT)
+*		3.) Device interrupts (both terminal and non-terminal)
+* 
+*	The interrupt handler gets invoked by the O.S. whenever a previously initiated I/O request completes or the PLT or IT makes
+* 	a 0x00000000 to 0xFFFFFFFF transition. The address of the interrupt handler in placed in the new interrupt processor state
+*	area so that control will immediately be passed to it when an interrupt occurs. 
+*  	
+* 	The one interrupt is handled at a time, so to determine which interrupt should be handled, the cause register in the old 
+* 	interrupt processor state area is examined. Whichever interrupt line with an current pending interrupt is of the highest 
+* 	priority is the one that gets handled.
+*
+* 	A Processor Local Timer interrupt occurs when the PLT makes a 0x00000000 to 0xFFFFFFFF transition. Handling of a PLT 
+* 	interrupt entails ending the "turn" of the interrupted process by placing it on the O.S.'s ready queue, and allowing 
+* 	another process to have a "turn" running by invoking the O.S.'s scheduler. The interrupt handler also maintains accumulated 
+* 	CPU time usage by updated this whenever a process is ended via a PLT interrupt.
+*
+* 	An Interval Timer interrupt occurs when the IT makes a 0x00000000 to 0xFFFFFFFF transition. Handling of an IT interrupt 
+* 	entails unblocking all processes that executed a Syscall 7 and were waiting for the clock. These processes are now ready, 
+* 	so they are placed on the O.S.'s ready queue. The Interval Timer is then reloaded with 100 milliseconds. 
+*
+* 	Handling of a Device interrupt entails first determining which device we need to handle. Similar to determining the line 
+* 	to handle, we look at the device bit map for the appropriate line, and then we determine the highest priority device on that
+* 	line that has a pending interrupt. Note that in the case of a terminal device, which is actually 2 sub-devices, an interrupt
+* 	on transmit is of higher priority than an interrupt on receipt. Next a process which has requested I/O from this device is 
+* 	unblocked, and the device status is returned to it via its v0 register. Finally, the interrupt is acknowledged by placing
+* 	writing the ACK command into the deivce's command field.
+* 																																														
+*	interrupts.c includes types.h, const.h, pcb.e, asl.e, exceptions.e, initial.e, interrupts.e, scheduler.e, 
+* 	and the umps2 library.
+* 	interrupts.c requires the following phase 2 global variables: ready queue, current process, softblock count, semaphore array                    																																																										*
+*
+***********************************************************************************************************************************************/
+
+
+
 #include "../h/const.h"
 #include "../h/types.h"
 #include "../e/pcb.e"
@@ -14,13 +55,15 @@ HIDDEN void ITInterruptHandler();
 HIDDEN void ExitInterruptHandler(state_PTR interruptOld);
 
 void InterruptHandler()
+/* Manages all processing required in order to handle any of the 3 types of possible interrupts:
+Processor Local Timer, Interval Timer, or Device interrupt.
+Determines the highest priority interrupt to handle, handles it, and then returns control back to
+the interrupted process. The scheduler is invoked if there was no process running immediately
+before the interrupt occurred. */
 {
-	cpu_t INTERRUPTSTART;											/* start time of interrupt handler */
-	STCK(INTERRUPTSTART);
 	state_PTR interruptOld = (state_PTR) INTERRUPTOLDAREA;			/* state of the interrupted process */
 	unsigned int causeReg = interruptOld->s_cause;
 	int lineNum; 													/* highest priority line with interrupt */
-	int transmitBool = TRUE; 										/* true if an interrupt on line 7 is transmit, false if receive */
 
 	lineNum = DetermineLine(causeReg);
 
@@ -41,10 +84,10 @@ void InterruptHandler()
 		devregarea_t* busRegArea = (devregarea_t*) RAMBASEADDR;
 		unsigned int devBitMap = busRegArea->interrupt_dev[lineNum - INITIALDEVLINENUM]; /* dev bit map for the line with an interrupt */
 		int devNum;
+		int transmitBool = TRUE; 									/* true if an interrupt on line 7 is transmit, false if receive */
 		device_t* deviceAddr;										/* address for device with interrupt */
 		int index;													/* index of the device's sema4 */
 		int * Sema4;												/* device's sema4 */
-
 
 		devNum = DetermineDevice(devBitMap);
 
@@ -92,8 +135,7 @@ void InterruptHandler()
 				/* case: it's not a terminal device */
 				else
 				{
-					/* SHOULDNT THIS BE D_STATUS */
-					proc->p_s.s_v0 = deviceAddr->d_command; /* put this in const*/
+					proc->p_s.s_v0 = deviceAddr->d_status;
 				}
 
 				/* the process is now ready */
@@ -119,7 +161,7 @@ void InterruptHandler()
 			/* case: it's not a terminal device */
 			else
 			{
-				deviceAddr->d_command = ACK; /* put this in const*/
+				deviceAddr->d_command = ACK;
 			}
 		}
 	}
@@ -129,6 +171,10 @@ void InterruptHandler()
 }
 
 HIDDEN int DetermineLine(unsigned int causeReg)
+/* Examines the cause register from the old interrupt processor state area, and determines not only
+which line has an interrupt, but which is of the highest priority. The cause register contains an 
+Interrupts Pending (IP) field of 8 bits. The ith bit is a 1 if there is a pending interrupt on line i.
+Returns the line number of the highest priority line with a pending interrupt. */
 {
 	int i = 0;														/* loop control variable for determining interrupt line number */
 	unsigned int lineOn = LINE0;									/* indicates an interrupt on line i */
@@ -143,7 +189,7 @@ HIDDEN int DetermineLine(unsigned int causeReg)
 		interruptOn = causeReg & lineOn; 							/* all 0s if there is NOT an interrupt on line i */
 
 		/* case: line i has an interrupt */
-		if(interruptOn != 0x00000000)
+		if(interruptOn != 0)
 		{
 			foundLine = TRUE;
 			lineNum = i;
@@ -187,12 +233,12 @@ HIDDEN void PLTInterruptHandler()
 	/* end the current process's turn */
 	IncrementProcessTime(currentProcess);
 	insertProcQ(&readyQ, currentProcess);
-	Scheduler();												/* schedule a new process to run */
+	Scheduler();													/* schedule a new process to run */
 }
 
 HIDDEN void ITInterruptHandler()
 {
-	int* sema4 = &(semaphoreArray[ITSEMINDEX]);					/* interval timer's semaddr */
+	int* sema4 = &(semaphoreArray[ITSEMINDEX]);						/* interval timer's semaddr */
 	pcb_PTR p;
 	/* unblock all the processes that were waiting for the clock */
 	while((*sema4) < 0)
@@ -207,16 +253,14 @@ HIDDEN void ITInterruptHandler()
 
 HIDDEN void ExitInterruptHandler(state_PTR interruptOld)
 {
-	cpu_t INTERRUPTEND;												/* end time of interrupt handler */
 	/* case: there was no process that got interrupted */
 	if(currentProcess == NULL)
 	{
 		Scheduler();
-	}											/* schedule a new process to run */
+	}																/* schedule a new process to run */
 	/* case: a process got interrupted */
 	else
 	{
-		STCK(INTERRUPTEND);
 		LoadState(interruptOld); 									/* return control to the interrupted process*/
 	}
 
