@@ -170,7 +170,7 @@ HIDDEN void CreateProcess(state_PTR syscallOld, state_PTR newState)
 		insertProcQ(&readyQ, newProcess);
 		processCount++;
 		syscallOld->s_v0 = 0;						/* indicate successful creation attempt */
-	}	
+	}
 
 	LoadState(syscallOld);							/* let the calling process start running again */
 }
@@ -215,8 +215,8 @@ HIDDEN void HoneyIKilledTheKids(state_PTR syscallOld, pcb_PTR p)
 		int* firstDevice = &(semaphoreArray[0]);			/* first device's semaddr */
 		int* lastDevice = &(semaphoreArray[SEMCOUNT - 2]); 	/* last device's semaddr */
 		outBlocked(p);										/* unblock it */
-		
-		/* case: blocked on device sema4 */ 
+
+		/* case: blocked on device sema4 */
 		if(firstDevice <= semaddr && semaddr <= lastDevice)
 		{
 			softBlockCount--;
@@ -224,7 +224,7 @@ HIDDEN void HoneyIKilledTheKids(state_PTR syscallOld, pcb_PTR p)
 		/* case: blocked on non-device sema4 */
 		else
 		{
-			*semaddr++;
+			*semaddr = *semaddr + 1;
 		}
 	}
 
