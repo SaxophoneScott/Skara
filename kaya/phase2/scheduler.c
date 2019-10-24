@@ -1,3 +1,26 @@
+/************************************************************* Scheduler.c *********************************************************************
+* written by Scott Harrington and Kara Schatz                      																																								*
+* 																																																															*
+*																																																															*
+* 	Purpose: Implements A fully functional scheduler, using Halt(), Wait(), Panic(), and LoadState() 																									*
+*  to control the process flow of the Operating system. The scheduler controls the flow of processes 																								*
+*	after the current process causes an exception and the exception raised causes the process to block, operating 																			* 
+*	when the interrupt handler causes an exception. The schedular controls the control flow of the 																									*
+*	operating system, as it takes the top process off the ready queue, and allows it to run. 																												*
+*																																																															*
+* 	The Scheduler implements a simple round-robin, with each process having a time slice of 5 milliseconds that guaranteess that ready process will excute when 	*
+*	when it is their turn. 																																																						*
+* 																																																															*
+*	The scheduler includes exceptions.e, initial.e, pcb.e, types.h, const.h , and the umps2 library to  control execution of the operating system                               	*
+* 	The scheduler implements 4 global variables, ReadyQueue, Current Process, Process Count, and Soft-block count 																		*
+*   																																																														*
+*    The scheduler is the first external program that Intial.c calls.     																																				*
+*                      																																																										*
+*																																															                                                            	*
+***********************************************************************************************************************************************/
+
+
+
 #include "../h/const.h"
 #include "../h/types.h"
 #include "../e/pcb.e"
@@ -6,6 +29,15 @@
 #include "../e/scheduler.e"
 #include "/usr/local/include/umps2/umps/libumps.e"
 
+/* Void Scheduler()
+
+	Scheduler takes the first process off the ready queue and performs an action depending on if it was successful on taking a process off. 
+	If it was not successful, then look at the global variables set in initial.c to determine if we are done/halt,
+	if we should wait for a process to become unblocked, and a softblockcount >1, or panic() , when process >1 and there are no process blocked. 
+
+	when it is succesful in getting a process, then set the current process to this new process, set the timer, store the time of day clock,
+	and load the processer state, and allow it to run.
+*/
 void Scheduler()
 {
 	pcb_PTR newProcess = removeProcQ(&readyQ);						/* try to get a new process */
