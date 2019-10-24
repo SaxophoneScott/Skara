@@ -18,8 +18,7 @@ void InterruptHandler()
 	unsigned int causeReg = interruptOld->s_cause;
 	int lineNum; 													/* highest priority line with interrupt */
 	int transmitBool = TRUE; 										/* true if an interrupt on line 7 is transmit, false if receive */
-	unsigned int interruptOn;										/* all 0s if there is NOT an interrupt on line i */
-	
+
 	lineNum = DetermineLine(causeReg);
 
 	/* one of the lines had an interrupt, so let's handle it */
@@ -54,6 +53,7 @@ void InterruptHandler()
 		unsigned int devBitMap = busRegArea->interrupt_dev[lineNum - INITIALDEVLINENUM]; /* dev bit map for the line with an interrupt */
 		int j = 0; 													/* loop control variable for determining interrupt device number */
 		unsigned int deviceOn = DEVICE0;							/* indicates an interrupt on device i */
+		unsigned int interruptOn;
 		int foundDevice = FALSE; 									/* true if the interrupting device has been found, false otherwise */
 		int devNum;													/* highest priority device with interrupt */
 		device_t* deviceAddr;										/* address for device with interrupt */
@@ -112,7 +112,7 @@ void InterruptHandler()
 						proc->p_s.s_v0 = deviceAddr->t_transm_status; 
 					}
 					/* case: it's a receive */
-					else 
+					else
 					{
 						proc->p_s.s_v0 = deviceAddr->t_recv_status;
 					}
@@ -170,6 +170,7 @@ HIDDEN int DetermineLine(unsigned int causeReg)
 {
 	int i = 0;														/* loop control variable for determining interrupt line number */
 	unsigned int lineOn = LINE0;									/* indicates an interrupt on line i */
+	unsigned int interruptOn;										/* all 0s if there is NOT an interrupt on line i */
 	int foundLine = FALSE; 											/* true if the interrupting line has been found, false otherwise */
 	int lineNum; 													/* highest priority line with interrupt */
 
