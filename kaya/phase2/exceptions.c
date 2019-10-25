@@ -1,29 +1,31 @@
 /****************************** Execptions.c ******************************
-* written by Scott Harrington and Kara Schatz                      
-Purpose: Exceptions.c holds the foundations of the SYSCALL exceptions, Program Trap exceptions, and TLB Management exceptions.
-Whenever a process invokes either a SYSCALL, or breaks a fundamental rule of the operating system, then the appropriate handler is invoked.  
-
-SYSCALL exceptions are raised when a process executes a SYSACLL assembler instruction. When looking at a SYSCALL exception, 
-we peek into the a0 register to determine which SYSCALL instruction is being called, as well as the status of SycallOld to determine if its in kernel mode or in user mode.
-If the instruction called in a0 is between 1-8 and kernel mode is on, then the corresponding SYSCALL instruction executes,
- otherwise there is an attempt to call a reserved instruction, and a Program Trap occurs.  When an attempt is made to call a sys 9 and above,
- a SYSCALL exception is raised, due to the occurrence that those SYSCALL have not been defined yet.
-
-Declared SYSCALL excpetions
-1-	Create Process, 2- Termiante, 3- Verhogen, 4- Passeren, 5- Specify Exception State Vector, 6- Get Cpu Time, 7-Wait For Clock, 8- Wait for IO
-
-Program Trap exceptions are raised when a process attempts to perfume an illegal action/undefined action.
- These Program Trap exceptions include Address Errors, Bus Errors, Reserved Instruction, Coprocessor Unstable and Arithmetic overflow. 
-
-TLB Management Exceptions are raised when a process attempts to translate a virtual address into its corresponding physical address. 
-Such exceptions include TLB modification, TLB invalid, Bad PgtBl, and PTE-MISS.
-
-Whenever an error exception is raised, (Sycall 1-8 in user mode, Syscall 9+, Program traps exceptions, and TLB management exceptions) 
-Pass up or die is called with the appropriate exception type.  The process will then be either passed up, meaning that earlier we declared a sys5 on the process, 
-and the process will then continue executing form the appropriate state. Otherwise, we have not called sys5, 
-meaning there is no state area to load, and we sys2 the process, terminate it and its child processes.  
-
-
+* written by Scott Harrington and Kara Schatz  
+*
+*
+*	Purpose: Exceptions.c holds the foundations of the SYSCALL exceptions, Program Trap exceptions, and TLB Management exceptions.
+* 	Whenever a process invokes either a SYSCALL, or breaks a fundamental rule of the operating system, then the appropriate handler is invoked.  
+*
+* 	SYSCALL exceptions are raised when a process executes a SYSACLL assembler instruction. When looking at a SYSCALL exception, 
+* 	we peek into the a0 register to determine which SYSCALL instruction is being called, as well as the status of SycallOld to determine if its in kernel mode or in user mode.
+*	If the instruction called in a0 is between 1-8 and kernel mode is on, then the corresponding SYSCALL instruction executes,
+*	otherwise there is an attempt to call a reserved instruction, and a Program Trap occurs.  When an attempt is made to call a sys 9 and above,
+*	a SYSCALL exception is raised, due to the occurrence that those SYSCALL have not been defined yet.
+*
+* 	Declared SYSCALL excpetions
+*	1-	Create Process, 2- Termiante, 3- Verhogen, 4- Passeren, 5- Specify Exception State Vector, 6- Get Cpu Time, 7-Wait For Clock, 8- Wait for IO
+*
+* 	Program Trap exceptions are raised when a process attempts to perfume an illegal action/undefined action.
+* 	These Program Trap exceptions include Address Errors, Bus Errors, Reserved Instruction, Coprocessor Unstable and Arithmetic overflow. 
+*
+* 	TLB Management Exceptions are raised when a process attempts to translate a virtual address into its corresponding physical address. 
+* 	Such exceptions include TLB modification, TLB invalid, Bad PgtBl, and PTE-MISS.
+*
+* 	Whenever an error exception is raised, (Sycall 1-8 in user mode, Syscall 9+, Program traps exceptions, and TLB management exceptions) 
+*	Pass up or die is called with the appropriate exception type.  The process will then be either passed up, meaning that earlier we declared a sys5 on the process, 
+* 	and the process will then continue executing form the appropriate state. Otherwise, we have not called sys5, 
+* 	meaning there is no state area to load, and we sys2 the process, terminate it and its child processes.  
+*
+*
 *******************************************************************/
 
 #include "../h/const.h"
@@ -305,6 +307,9 @@ HIDDEN void ExceptionStateVec(state_PTR syscallOld, unsigned int exceptionType, 
 
 /*SYS6*/
 HIDDEN void GetCpuTime(state_PTR syscallOld)
+/*
+Handles SYSCALL 6: Get CPU Time
+*/
 {
 	cpu_t time = currentProcess->p_totalTime;						/* time used before this turn */
 	cpu_t endTime;													/* current time */
@@ -316,6 +321,9 @@ HIDDEN void GetCpuTime(state_PTR syscallOld)
 
 /*SYS7*/
 HIDDEN void WaitForClock(state_PTR syscallOld)
+/* 
+Handles SYSCALL 7: Wait for Clock
+*/
 {
 	int* semaphore = &(semaphoreArray[ITSEMINDEX]); 				/* pseudo-clock timer's semaddr */
 	Passeren(syscallOld, semaphore);								/* P the sema4 and block the process */
@@ -323,6 +331,17 @@ HIDDEN void WaitForClock(state_PTR syscallOld)
 
 /*SYS8*/
 HIDDEN void WaitForIo(state_PTR syscallOld, int lineNum, int deviceNum, int termRead)
+/*
+Handles SYSCALL 8: Wait for I/O Device
+Blocks the calling process on the semaphore associated with the given device. First,
+it computes the index of that semaphore in the phase 2 global semaphore array. Then,
+the device status is placed in the v0 register to return to the calling process before 
+said process is blocked.
+param: syscallOld - the state of the calling process
+param: lineNum - the line number of the device
+param: deviceNum - the device number 
+param: termRead - true if it is a terminal receive, false otherwise
+*/
 {
 	int index = (lineNum - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + deviceNum;		/* index of device */
 	int* semaddr;																	/* device's semaddr */
@@ -336,25 +355,29 @@ HIDDEN void WaitForIo(state_PTR syscallOld, int lineNum, int deviceNum, int term
 
 	semaddr = &semaphoreArray[index];
 	(*semaddr)--;		
+	deviceAddr = (device_t*) (BASEDEVICEADDRESS + ((lineNum - INITIALDEVLINENUM) * DEVICETYPESIZE) + (deviceNum * DEVICESIZE));
+	syscallOld->s_v0 = deviceAddr->d_status;						/* return device's status */
 
 	/* case: block the process until it gets IO */								
-	if(*(semaddr) <0)
+	if(*(semaddr) < 0)
 	{
 		BlockHelperFunction(syscallOld, semaddr, currentProcess);
 	}
 	/* case: ERROR ERROR */
 	else
 	{
-		/* terminate??? */
 		TerminateProcess(syscallOld, currentProcess);
 	}
-
-	deviceAddr = (device_t*) (BASEDEVICEADDRESS + ((lineNum - INITIALDEVLINENUM) * DEVICETYPESIZE) + (deviceNum * DEVICESIZE));
-	syscallOld->s_v0 = deviceAddr->d_status;						/* return device's status */
 }	
 
-/* helper function to localize blocking */
 HIDDEN void BlockHelperFunction(state_PTR syscallOld, int* semaddr, pcb_PTR process)
+/* 
+Blocks the given process on the given semaphore. Then invokes the scheduler to start the
+execution of a new process.
+param: syscallOld - the state of the process being blocked at the time of the exception
+param: semaddr - the address of the semaphore on which to block it
+param: process - the process to block
+*/
 {
 	IncrementProcessTime(process);									/* update accumulated cpu time used */
 	CopyState(&(process->p_s), syscallOld);							/* update the process's state in case of any changes */
@@ -365,11 +388,22 @@ HIDDEN void BlockHelperFunction(state_PTR syscallOld, int* semaddr, pcb_PTR proc
 }
 
 HIDDEN void PassUpOrDie(state_PTR oldState, int exceptionType)
+/*
+Manages the decision to pass up or die in a given exception situation. Can be used for 
+Syscall/BP exceptions, Program Trap exceptions, and TLB Management exceptions. 
+If the process causing the exception has specified an exception state vector for the 
+specific exception type in question, then execution gets "passed up" to its vector/handler.
+If the process causing the exception has not specified an exception state vector for the
+excption type in question, then the process is killed.
+param: oldState - the state of the process that caused the exception
+param: exceptionType - value indicating which type of exception is being dealt with
+	   0 for TLB Trap, 1 for Program Trap, 2 for Syscall
+*/
 {
 	/* case: DIE - an exception state vector (SYS5) has not be set up */
 	if((currentProcess->oldAreas[exceptionType] == NULL) || (currentProcess->newAreas[exceptionType] == NULL)){
 		TerminateProcess(oldState, currentProcess);
-	/* case: PASS UP -  an exception state vector has been set up */
+	/* case: PASS UP - an exception state vector has been set up */
 	} else {
 		CopyState(currentProcess->oldAreas[exceptionType], oldState);				/* copy states based on the exception state vector */
 		CopyState(&(currentProcess->p_s), currentProcess->newAreas[exceptionType]);
@@ -378,6 +412,11 @@ HIDDEN void PassUpOrDie(state_PTR oldState, int exceptionType)
 }
 
 HIDDEN void CopyState(state_PTR newState, state_PTR oldState)
+/*
+Copies a state from one memory location to another.
+param: newState - the state to copy the old contents into
+param: oldState - the state from which to copy those contents
+*/
 {
 	int i;															/* loop control variable to copy the registers */
 	/* copy all scalar fields */
