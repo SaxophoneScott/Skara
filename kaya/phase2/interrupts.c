@@ -55,11 +55,13 @@ HIDDEN void ITInterruptHandler();
 HIDDEN void ExitInterruptHandler(state_PTR interruptOld);
 
 void InterruptHandler()
-/* Manages all processing required in order to handle any of the 3 types of possible interrupts:
+/* 
+Manages all processing required in order to handle any of the 3 types of possible interrupts:
 Processor Local Timer, Interval Timer, or Device interrupt.
 Determines the highest priority interrupt to handle, handles it, and then returns control back to
 the interrupted process. The scheduler is invoked if there was no process running immediately
-before the interrupt occurred. */
+before the interrupt occurred. 
+*/
 {
 	state_PTR interruptOld = (state_PTR) INTERRUPTOLDAREA;			/* state of the interrupted process */
 	unsigned int causeReg = interruptOld->s_cause;
@@ -171,10 +173,14 @@ before the interrupt occurred. */
 }
 
 HIDDEN int DetermineLine(unsigned int causeReg)
-/* Examines the cause register from the old interrupt processor state area, and determines not only
-which line has an interrupt, but which is of the highest priority. The cause register contains an 
-Interrupts Pending (IP) field of 8 bits. The ith bit is a 1 if there is a pending interrupt on line i.
-Returns the line number of the highest priority line with a pending interrupt. */
+/* 
+Examines the cause register from the old interrupt processor state area, and determines not only
+which line has an interrupt, but also which is of the highest priority. The cause register contains 
+an Interrupts Pending (IP) field of 8 bits, where the ith bit is a 1 if there is a pending interrupt 
+on line i. The lower the line number, the higher the priority.
+param: the cause register
+return: the line number of the highest priority line with a pending interrupt. 
+*/
 {
 	int i = 0;														/* loop control variable for determining interrupt line number */
 	unsigned int lineOn = LINE0;									/* indicates an interrupt on line i */
@@ -202,6 +208,15 @@ Returns the line number of the highest priority line with a pending interrupt. *
 }
 
 HIDDEN int DetermineDevice(unsigned int devBitMap)
+/* 
+Examines the device bit map of the interrupting line, and determines not only which device has an 
+interrupt, but also which is of the highest priority. The device bit map contains a field of 8 
+bits, where the ith bit is a 1 if there is a pending interrupt on device i. The lower the device 
+number, the higher the priority, and in the case of terminal devices, terminal transmit is of 
+higher priority than terminal receive. 
+param: the device bit map of the interrupting line
+return: the device number of the highest priority device with a pending interrupt. 
+*/
 {
 		int j = 0; 													/* loop control variable for determining interrupt device number */
 		unsigned int deviceOn = DEVICE0;							/* indicates an interrupt on device i */
@@ -229,6 +244,11 @@ HIDDEN int DetermineDevice(unsigned int devBitMap)
 }
 
 HIDDEN void PLTInterruptHandler()
+/*
+Handler for Processor Local Timer interrupts. The interrupted process used up their "turn,"
+so its total CPU time is accumulated, and then it is put back onto the ready queue. Then,
+the scheduler is invoked to start a new process.  
+*/
 {
 	/* end the current process's turn */
 	IncrementProcessTime(currentProcess);
@@ -237,6 +257,11 @@ HIDDEN void PLTInterruptHandler()
 }
 
 HIDDEN void ITInterruptHandler()
+/*
+Handler for Interval Timer interrupts. All processes that executed a Syscall 7 to wait for 
+the clock are unblocked and placed on that ready queue. Then, the Interval Timer is reloaded
+with 100 milliseconds.
+*/
 {
 	int* sema4 = &(semaphoreArray[ITSEMINDEX]);						/* interval timer's semaddr */
 	pcb_PTR p;
@@ -252,6 +277,11 @@ HIDDEN void ITInterruptHandler()
 }
 
 HIDDEN void ExitInterruptHandler(state_PTR interruptOld)
+/*
+Completes the Interrupt Handler execution by either returning control to the interrupted process
+or invoking the scheduler to start a new process in the case that there was no process executing
+at the time of the interrupt.
+*/
 {
 	/* case: there was no process that got interrupted */
 	if(currentProcess == NULL)
