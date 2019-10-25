@@ -2,22 +2,24 @@
 * written by Scott Harrington and Kara Schatz                      																																								
 * 																																																															
 *																																																															
-* 	Purpose: Implements A fully functional scheduler, using Halt(), Wait(), Panic(), and LoadState() 																									
-*  to control the process flow of the operating system. The scheduler controls the flow of processes 																								
-*	after the current process causes an exception and the exception raised causes the process to block, or operating 																		
-*	when the interrupt handler causes an exception. The schedular controls the control flow of the 																									
-*	operating system, as it takes the top process off the ready queue, and allows it to run. 																												
+* 	Purpose: Implements a fully functional scheduler for the operating system using HALT(), PANIC(), WAIT(), and LoadState() as the four 
+*	options for controlling the process flow and state of the operating system. It does so by taking the front process off the ready queue and 
+*	allowing it to run. In the case that there is no such process, either HALT(), PANIC(), or WAIT() gets invoked. 	
+*
+*	The scheduler gets invoked in 3 instances:
+*		1.) by main.c after all initial setup for the kaya operating system is complete
+*		2.) by exceptions.c after the current process causes an exception and that exception raised causes the process to block 
+*		3.) by interrupts.c after an interrupt occurs but there was no previous running process to return to																										
 *																																																															
-* 	The Scheduler implements a simple round-robin, with each process having a time slice of 5 milliseconds that guaranteess that ready process will excute when 	
-*	when it is their turn. 																																																						
+* 	The scheduler implements a simple round-robin scheduling algorithm giving each process a time slice of 5 milliseconds and guaranteeing that 
+*	ready processes will all be given a turn to run, i.e. no starvation. 	
+* 
+* 	The scheduler is invoked by main() in initial.c and is the first external program called to get the operating system up and running.	
+* 	The scheduler continues to schedule processes until the test() program finishes execution. After test() ends, the scheduler is halted, 
+* 	as there are no processes in the system.																																							
 * 																																																															
 *	The scheduler includes exceptions.e, initial.e, pcb.e, types.h, const.h , and the umps2 library to  control execution of the operating system                               	
-* 	The scheduler implements 4 global variables, ReadyQueue, Current Process, Process Count, and Soft-block count 																		
-*   																																																														
-*    The scheduler is the first external program that Intial.c calls.     																																				
-*																																																															
-*	The Scheduler runs test() as its main program, and continues to schedule processes until the test() program finishes execution. 													
-* After test() ends, the scheduler is halted, as there are no process in the system.																															                     																																																										*
+* 	The scheduler requires 4 phase 2 global variables: Ready Queue, Current Process, Process Count, and Soft-block Count																															                     																																																										*
 *																																															                                                            	
 ***********************************************************************************************************************************************/
 
@@ -31,20 +33,18 @@
 #include "../e/scheduler.e"
 #include "/usr/local/include/umps2/umps/libumps.e"
 
-/* Void Scheduler()
-
-	Scheduler takes the first process off the ready queue and performs an action depending on if it was successful on taking a process off. 
-	If it was not successful, then look at the global variables set in initial.c to determine if we are 
-	done/halt - no currentprocess  = 0;
-	panic - currentprocess >1 and softblock count = 0; 
-	wait - currentprocess >1 and softblock count >1
-
-	when we halt, that means there are no process in the scheduler, and means the main God process, has finished. 
-
-	when it is succesful in getting a process, then set the current process to this new process, set the timer, store the time of day clock,
-	and load the processer state, and allow it to run.
-*/
 void Scheduler()
+/*
+Scheduler takes the first process off the ready queue and performs an action depending on if it was successful in getting a ready process. 
+If it was not successful, i.e. there are no ready processes to run, then it looks at the phase 2 global variables to determine which of the
+following is appropriate: 
+	done/halt: there are no processes in the system, i.e. processCount = 0;
+	panic: there are processes in the system, but they are not blocked on semaphores, i.e. processCount > 0 and softBlockCount = 0
+	wait: there are no ready processes, but there are some blocked on semaphores, i.e. processCount > 0 and softBlockCount > 0
+When we halt, that means there are no process in the system, and the main God process, has finished. 
+If it is successful, i.e. there is a ready process to run, then the current process is set to this new process, the timer is loaded with a 
+quantum, the value on the time of day clock is stored off, and the new process's state is loaded, allowing it to run.
+*/
 {
 	pcb_PTR newProcess = removeProcQ(&readyQ);						/* try to get a new process */
 
