@@ -195,19 +195,28 @@ HIDDEN void CreateProcess(state_PTR syscallOld, state_PTR newState)
 
 /* SYS2 */
 HIDDEN void TerminateProcess(state_PTR syscallOld, pcb_PTR process)
+/*
+Handles SYSCALL 2: Terminate Process
+Terminates the calling process along with all its prodigy via a recursive helper
+function. Then the scheduler is invoked to start the execution of a new process.
+param: syscallOld - the state of the calling process
+param: process - the process to be terminated along with all its prodigy
+*/
 {
 	HoneyIKilledTheKids(syscallOld, process);						/* recursively kill all prodigy */
-	/*outProcQ(&readyQ, process);
-	processCount--;
-	IncrementProcessTime(process);
-	freePcb(process);*/
 	Scheduler();													/* schedule a new process to run */
 }
 
-/* helper function for TerminateProcess()
-	uses recurision to kill all pf the children and their children  and thier children etc 
-	of a pcb p*/
 HIDDEN void HoneyIKilledTheKids(state_PTR syscallOld, pcb_PTR p)
+/*
+Recursively terminates a process and all its prodigy. Terminates all such processes
+including the currentProcess, ones on the ready queue, or those blocked on a semaphore.
+If a blocked process is unblocked from a device semaphore and killed, then the 
+softBlockCount reflects this. If a blocked process is unblocked from a non-device
+semaphore and killed, then the semaphore is incremented by 1 (V'ed).
+param: syscallOld - the state of the calling process
+param: p - the process to be terminated along with all its prodigy
+*/
 {
 	/* there's still more kids to kill */
 	while(!(emptyChild(p)))
@@ -250,8 +259,16 @@ HIDDEN void HoneyIKilledTheKids(state_PTR syscallOld, pcb_PTR p)
 }
 
 /*SYS3 */
-/* increments the sema4 */
 HIDDEN void Verhogen(state_PTR syscallOld, int* semaddr)
+/*
+Handles SYSCALL 3: Verhogen
+Performs a V operation on the given semaphore. This increments the semaphore by 1.
+If this increment causes the semaphore's value to drop to 0 or below, then a process
+which was blocked on that semaphore gets unblocked and placed on the ready queue. 
+Then, execution returns to the calling process.
+param: syscallOld - the state of the calling process
+param: semaddr - the address of the semaphore to be V'ed
+*/
 {
 	*(semaddr) = *semaddr + 1;
 
@@ -271,13 +288,21 @@ HIDDEN void Verhogen(state_PTR syscallOld, int* semaddr)
 }
 
 /*SYS4*/
-/* decrements the sema4 */
 HIDDEN void Passeren(state_PTR syscallOld, int* semaddr)
+/*
+Handles SYSCALL 4: Passeren
+Performs a P operation on the given semaphore. This decrements the semaphore by 1.
+If this decrement causes the semaphore's value to drop below 0, then the calling 
+process is blocked on that semaphore. Otherwise, execution returns to the calling 
+process.
+param: syscallOld - the state of the calling process
+param: semaddr - the address of the semaphore to be P'ed
+*/
 {
 	(*semaddr) = *semaddr - 1;	
 
 	/* case: wait/block until signaled later */
-	if((*semaddr) <0)
+	if((*semaddr) < 0)
 	{
 		BlockHelperFunction(syscallOld, semaddr, currentProcess);
 	}
@@ -290,6 +315,23 @@ HIDDEN void Passeren(state_PTR syscallOld, int* semaddr)
 
 /*SYS5*/
 HIDDEN void ExceptionStateVec(state_PTR syscallOld, unsigned int exceptionType, memaddr oldStateLoc, memaddr newStateLoc)
+/*
+Handles SYSCALL 5: Specify Excpetion State Vector
+Allows the calling process to specify its a vector to use in case of a particular 
+exception type. This vector enables the process to specify where its state will be 
+stored in case of an exception as well as what state should take over in case of an
+exception. This essentially allows the process to specify its own exception handler
+for that exception type instead of using the one provided by the O.S. After specif-
+ication, execution is returned to the calling process. 
+If the calling process has already specified a vector for this exception type, then 
+the process is killed.
+param: syscallOld - the state of the calling process
+param: exceptionType - the type of exception for which a vector/handler is being set up
+param: oldStateLoc - the address into which the old processor state is to be stroed when
+	   an exception of this type occurs
+param: newStateLoc - the address that is to be taken as the new processor state if an 
+	   exception of this type occurs
+*/
 {
 	/* case: process has not specified an exception state vector yet, so let it do so now */
 	if(currentProcess->oldAreas[exceptionType]==NULL && currentProcess->newAreas[exceptionType]==NULL)
@@ -309,6 +351,9 @@ HIDDEN void ExceptionStateVec(state_PTR syscallOld, unsigned int exceptionType, 
 HIDDEN void GetCpuTime(state_PTR syscallOld)
 /*
 Handles SYSCALL 6: Get CPU Time
+Returns the processor time used by the calling process to that process in its
+v0 register. 
+param: syscallOld - the state of the calling process
 */
 {
 	cpu_t time = currentProcess->p_totalTime;						/* time used before this turn */
@@ -323,6 +368,9 @@ Handles SYSCALL 6: Get CPU Time
 HIDDEN void WaitForClock(state_PTR syscallOld)
 /* 
 Handles SYSCALL 7: Wait for Clock
+Performs a P operation on the semaphore associated with the Interval Timer, which 
+will always block the calling process since the semaphore is initialized to 0.
+param: syscallOld - the state of the calling process
 */
 {
 	int* semaphore = &(semaphoreArray[ITSEMINDEX]); 				/* pseudo-clock timer's semaddr */
@@ -335,8 +383,8 @@ HIDDEN void WaitForIo(state_PTR syscallOld, int lineNum, int deviceNum, int term
 Handles SYSCALL 8: Wait for I/O Device
 Blocks the calling process on the semaphore associated with the given device. First,
 it computes the index of that semaphore in the phase 2 global semaphore array. Then,
-the device status is placed in the v0 register to return to the calling process before 
-said process is blocked.
+the process is blocked and the device status is placed in the v0 register to return 
+to the calling process.
 param: syscallOld - the state of the calling process
 param: lineNum - the line number of the device
 param: deviceNum - the device number 
@@ -355,8 +403,6 @@ param: termRead - true if it is a terminal receive, false otherwise
 
 	semaddr = &semaphoreArray[index];
 	(*semaddr)--;		
-	deviceAddr = (device_t*) (BASEDEVICEADDRESS + ((lineNum - INITIALDEVLINENUM) * DEVICETYPESIZE) + (deviceNum * DEVICESIZE));
-	syscallOld->s_v0 = deviceAddr->d_status;						/* return device's status */
 
 	/* case: block the process until it gets IO */								
 	if(*(semaddr) < 0)
@@ -368,6 +414,9 @@ param: termRead - true if it is a terminal receive, false otherwise
 	{
 		TerminateProcess(syscallOld, currentProcess);
 	}
+
+	deviceAddr = (device_t*) (BASEDEVICEADDRESS + ((lineNum - INITIALDEVLINENUM) * DEVICETYPESIZE) + (deviceNum * DEVICESIZE));
+	syscallOld->s_v0 = deviceAddr->d_status;						/* return device's status */
 }	
 
 HIDDEN void BlockHelperFunction(state_PTR syscallOld, int* semaddr, pcb_PTR process)
