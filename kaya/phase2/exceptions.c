@@ -35,6 +35,7 @@ meaning there is no state area to load, and we sys2 the process, terminate it an
 #include "../e/scheduler.e"
 #include "/usr/local/include/umps2/umps/libumps.e"
 
+/* Hidden Methods */
 HIDDEN void CreateProcess(state_PTR syscallOld, state_PTR newState);
 HIDDEN void TerminateProcess(state_PTR syscallOld, pcb_PTR process);
 HIDDEN void HoneyIKilledTheKids(state_PTR syscallOld, pcb_PTR p);
