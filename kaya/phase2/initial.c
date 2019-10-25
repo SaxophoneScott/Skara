@@ -1,3 +1,15 @@
+/************************************************************* initial.c *********************************************************************
+* written by Scott Harrington and Kara Schatz         
+*
+* Innitial.c is the initial set up for the Kaya operating system.  When called, it sets up all the fields required by Kaya.  
+*
+* 	Initial.c provides the main instruction, main(), that sets up the Kaya operating system.
+*	Initial.c sets up the four main exception state areas, initialize the pcbs and the asl, sets the ready queue,
+*	initialize all semaphores to have the value of zero. Then after all of that, allocPcb an initial process, and set it to p2test. After that,
+* 	we increment the current process count, and call the scheduler. After the call of scheduler, main is never seen re-entered.																																																											
+*																																																															
+* 									                                                            	
+***********************************************************************************************************************************************/
 #include "../h/const.h"
 #include "../h/types.h"
 #include "../e/pcb.e"
@@ -26,7 +38,7 @@ int semaphoreArray[SEMCOUNT]; 		/* semaphore for each device and the interval ti
 
 
 HIDDEN void initializeNewArea(state_PTR memArea, memaddr handlerName, memaddr sp, unsigned int status);
-extern void test();
+extern void test(); /* method of p2test.c */
 
 void main(){
 	int i;															/* loop control variable to initialize sema4s */
