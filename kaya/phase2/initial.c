@@ -16,6 +16,7 @@
 *			After the call of scheduler, main is only ever re-entered when an exception or interrupt occurs.
 *
 ***********************************************************************************************************************************************/
+/* included files */
 #include "../h/const.h"
 #include "../h/types.h"
 #include "../e/pcb.e"

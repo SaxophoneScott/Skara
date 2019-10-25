@@ -27,7 +27,7 @@
 *
 *
 *******************************************************************/
-
+/* included files*/
 #include "../h/const.h"
 #include "../h/types.h"
 #include "../e/pcb.e"
@@ -52,6 +52,14 @@ HIDDEN void PassUpOrDie(state_PTR oldState, int exceptionType);
 HIDDEN void CopyState(state_PTR newState, state_PTR oldState);
 
 void SyscallHandler(){
+/* Syscall Handler
+
+Syscall Handler takes in the state pointer of old SYSCALL area, increments the pc by 4.
+ SYSCALL requires a check of the status register, to determine if the kernel mode bit is on or off.
+  Look at the a0 register to determine the appropriate SYSCALL instruction. The kernel mode bit is required to be on for SYSCALLS 1-8 to properly execute, 
+  as these are privileged instructions. 9-18 are user instructions that are not implemented yet, and these are treated as SYSCALL Exceptions,
+  and pass up or die is called. While attempts at calling SYSCALL 1-8 in user mode will trigger a Program Trap (Reserved Instruction) Exception, and pass up or die is called. 
+*/
 	state_PTR syscallOld = (state_PTR) SYSCALLOLDAREA;				/* state of the process issuing a syscall */
 	syscallOld->s_pc += WORDLEN;									/* increment the pc, so the process will move on when it starts again */
 
@@ -148,13 +156,24 @@ void SyscallHandler(){
 		}
 	}
 }
+/*
+Program Trap Handler
+When a process makes an illegal call to an instruction or action, it lands here, in the program trap handler.
+From here pass up or die is called to determine what to do with the process. The cause of the program trap is set and stored in the cause register
+automatically, unless it is a reserved instruction programtrap that is from syscall handler, that status is set before continuing excution here in the program
+trap handler
 
+*/
 void ProgramTrapHandler()
 {
 	state_PTR programTrapOld = (state_PTR) PROGRAMTRAPOLDAREA;
 	PassUpOrDie(programTrapOld, PROGRAMTRAPEXCEPTION);
 }
-
+/*
+TLB ManagementHandler
+when a process tries to translate a virtual address in a corresponding physical address and failed. 
+The status of the TLB management Handler is set automatically, and pass up or die is called to determine the fate of the process. 
+*/
 void TLBManagementHandler()
 {
 	state_PTR TLBManagementOld = (state_PTR) TLBMANAGEMENTOLDAREA;
@@ -162,19 +181,29 @@ void TLBManagementHandler()
 }
 
 /* helper function to localize potential LDST's */
+/* helper function to localize potential LDST's 
+ Its just a function to encapsulate all calls to ldst, used in Scheduler and Interrupts   
+*/
 void LoadState(state_PTR processState)
 {
 	LDST(processState);
 }
-
+/* Increment Process Time
+	Takes in a pointer to pcb
+	takes in the current time of day, and stores int in the pc total time
+*/
 void IncrementProcessTime(pcb_PTR process)
 {
 	cpu_t endTime;													/* current time  */
 	STCK(endTime); 
 	process->p_totalTime += (endTime - processStartTime); 			/* increment processor time used based on process start time */
 }
-
-/* SYS1 */
+/* SYS1
+Handles SYSCALL 1, create process
+Allocates a new pcb, checks an error case where there are no new spots for processes, 
+Otherwise copy the state of new process and make a child process of the current process,
+and then insert it into the ready queue. Then continue execution of the calling process. 
+ */
 HIDDEN void CreateProcess(state_PTR syscallOld, state_PTR newState)
 {
 	pcb_PTR newProcess = allocPcb();								/* get a new process */

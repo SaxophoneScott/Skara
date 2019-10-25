@@ -34,9 +34,7 @@
 * 	interrupts.c requires 4 phase 2 global variables: Ready Queue, Current Process, Soft-block Count, Semaphore Array                    																																																										*
 *
 ***********************************************************************************************************************************************/
-
-
-
+/* included files*/
 #include "../h/const.h"
 #include "../h/types.h"
 #include "../e/pcb.e"

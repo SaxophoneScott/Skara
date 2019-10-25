@@ -22,9 +22,7 @@
 * 	The scheduler requires 4 phase 2 global variables: Ready Queue, Current Process, Process Count, and Soft-block Count																															                     																																																										*
 *																																															                                                            	
 ***********************************************************************************************************************************************/
-
-
-
+/* included files*/
 #include "../h/const.h"
 #include "../h/types.h"
 #include "../e/pcb.e"
