@@ -20,18 +20,18 @@
 *	whenever a process is ended via a PLT interrupt.
 *
 * 	An Interval Timer interrupt occurs when the IT makes a 0x00000000 to 0xFFFFFFFF transition. Handling of an IT interrupt entails unblocking 
-*	all processes that executed a Syscall 7 and were waiting for the clock. These processes are now ready, so they are placed on the operating 
+*	all processes that executed a SYSCALL 7 and were waiting for the clock. These processes are now ready, so they are placed on the operating 
 *	system's ready queue. The Interval Timer is then reloaded with 100 milliseconds. 
 *
 * 	Handling of a Device interrupt entails first determining which device we need to handle. Similar to determining the line to handle, we look 
 *	at the device bit map for the appropriate line, and then we determine the highest priority device on that line that has a pending interrupt.
 *	Note that in the case of a terminal device, which is actually 2 sub-devices, an interrupt on transmit is of higher priority than an 
 *	interrupt on receipt. Next a process which has requested I/O from this device is unblocked, and the device status is returned to it via its
-*	v0 register. Finally, the interrupt is acknowledged by writing the ACK command into the deivce's command field.
+*	v0 register. Finally, the interrupt is acknowledged by writing the ACK command into the device's command field.
 * 																																														
 *	interrupts.c includes types.h, const.h, pcb.e, asl.e, exceptions.e, initial.e, interrupts.e, scheduler.e, 
 * 	and the umps2 library
-* 	interrupts.c requires 4 phase 2 global variables: Ready Queue, Current Process, Softblock Count, Semaphore Array                    																																																										*
+* 	interrupts.c requires 4 phase 2 global variables: Ready Queue, Current Process, Soft-block Count, Semaphore Array                    																																																										*
 *
 ***********************************************************************************************************************************************/
 
@@ -68,7 +68,7 @@ before the interrupt occurred.
 	lineNum = DetermineLine(causeReg);
 
 	/* one of the lines had an interrupt, so let's handle it */
-	/* case: it's the proccesor local timer */
+	/* case: it's the processor local timer */
 	if(lineNum == PLTLINE)
 	{
 		PLTInterruptHandler();
@@ -93,8 +93,7 @@ before the interrupt occurred.
 
 		/* one of the devices had an interrupt, so let's handle it */
 		deviceAddr = (device_t*) (BASEDEVICEADDRESS + ((lineNum - INITIALDEVLINENUM) * DEVICETYPESIZE) + (devNum * DEVICESIZE));
-		index = (lineNum - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + devNum; /* calcuating index */
-		/*	deviceAddr = (device_t *)( busRegArea->devreg[index]);  should be the same as the calcuation as before, emphasis on should*/
+		index = (lineNum - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + devNum; /* calculating index */
 
 		/* case: it's a terminal device */
 		if(lineNum == TERMINT)
@@ -256,7 +255,7 @@ the scheduler is invoked to start a new process.
 
 HIDDEN void ITInterruptHandler()
 /*
-Handler for Interval Timer interrupts. All processes that executed a Syscall 7 to wait for 
+Handler for Interval Timer interrupts. All processes that executed a SYSCALL 7 to wait for 
 the clock are unblocked and placed on that ready queue. Then, the Interval Timer is reloaded
 with 100 milliseconds.
 */
