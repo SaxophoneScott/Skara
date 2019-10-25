@@ -1,14 +1,20 @@
 /************************************************************* initial.c *********************************************************************
-* written by Scott Harrington and Kara Schatz         
+* written by Scott Harrington and Kara Schatz 
 *
-* Innitial.c is the initial set up for the Kaya operating system.  When called, it sets up all the fields required by Kaya.  
+* 	Purpose: To perform the initial set up for the Kaya operating system. When called, it sets up all the states and fields required by the
+*	operating system.
 *
-* 	Initial.c provides the main instruction, main(), that sets up the Kaya operating system.
-*	Initial.c sets up the four main exception state areas, initialize the pcbs and the asl, sets the ready queue,
-*	initialize all semaphores to have the value of zero. Then after all of that, allocPcb an initial process, and set it to p2test. After that,
-* 	we increment the current process count, and call the scheduler. After the call of scheduler, main is never seen re-entered.																																																											
-*																																																															
-* 									                                                            	
+* 	Initial.c provides the main instruction, main(), that sets up and starts the Kaya operating system.
+*
+*	main() completes the following tasks:
+*		1.) sets up the four new areas/states in the ROM Reserved Frame
+*		2.) initializes the pcbs and the asl
+*		3.) initializes all phase 2 global variables: Process Count, Soft-block Count, currentProcess, processStartTime, Ready Queue, and the 
+*			semaphore array (initializes all semaphores to have the value of zero)
+*		4.) allocates a pcb for the initial process and sets up its state, including setting the pc to run the phase 2 test code
+*		5.) calls the scheduler to get the operating system up and running processes. 
+*			After the call of scheduler, main is only ever re-entered when an exception or interrupt occurs.
+*
 ***********************************************************************************************************************************************/
 #include "../h/const.h"
 #include "../h/types.h"

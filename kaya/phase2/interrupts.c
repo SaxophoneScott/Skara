@@ -7,33 +7,31 @@
 *		2.) Interval Timer interrupts (IT)
 *		3.) Device interrupts (both terminal and non-terminal)
 * 
-*	The interrupt handler gets invoked by the O.S. whenever a previously initiated I/O request completes or the PLT or IT makes
-* 	a 0x00000000 to 0xFFFFFFFF transition. The address of the interrupt handler in placed in the new interrupt processor state
-*	area so that control will immediately be passed to it when an interrupt occurs. 
+*	The interrupt handler gets invoked by the operating system whenever a previously initiated I/O request completes or the PLT or IT makes a 
+* 	0x00000000 to 0xFFFFFFFF transition. The address of the interrupt handler in placed in the new interrupt processor state area so that 
+*	control will immediately be passed to it when an interrupt occurs. 
 *  	
-* 	The one interrupt is handled at a time, so to determine which interrupt should be handled, the cause register in the old 
-* 	interrupt processor state area is examined. Whichever interrupt line with an current pending interrupt is of the highest 
-* 	priority is the one that gets handled.
+* 	The one interrupt is handled at a time, so to determine which interrupt should be handled, the cause register in the old interrupt processor 
+*	state area is examined. Whichever interrupt line with an current pending interrupt is of the highest priority is the one that gets handled.
 *
-* 	A Processor Local Timer interrupt occurs when the PLT makes a 0x00000000 to 0xFFFFFFFF transition. Handling of a PLT 
-* 	interrupt entails ending the "turn" of the interrupted process by placing it on the O.S.'s ready queue, and allowing 
-* 	another process to have a "turn" running by invoking the O.S.'s scheduler. The interrupt handler also maintains accumulated 
-* 	CPU time usage by updated this whenever a process is ended via a PLT interrupt.
+* 	A Processor Local Timer interrupt occurs when the PLT makes a 0x00000000 to 0xFFFFFFFF transition. Handling of a PLT interrupt entails 
+*	ending the "turn" of the interrupted process by placing it on the operating system's ready queue, and allowing another process to have a 
+*	"turn" running by invoking the operating system's scheduler. The interrupt handler also maintains accumulated CPU time usage by updated this 
+*	whenever a process is ended via a PLT interrupt.
 *
-* 	An Interval Timer interrupt occurs when the IT makes a 0x00000000 to 0xFFFFFFFF transition. Handling of an IT interrupt 
-* 	entails unblocking all processes that executed a Syscall 7 and were waiting for the clock. These processes are now ready, 
-* 	so they are placed on the O.S.'s ready queue. The Interval Timer is then reloaded with 100 milliseconds. 
+* 	An Interval Timer interrupt occurs when the IT makes a 0x00000000 to 0xFFFFFFFF transition. Handling of an IT interrupt entails unblocking 
+*	all processes that executed a Syscall 7 and were waiting for the clock. These processes are now ready, so they are placed on the operating 
+*	system's ready queue. The Interval Timer is then reloaded with 100 milliseconds. 
 *
-* 	Handling of a Device interrupt entails first determining which device we need to handle. Similar to determining the line 
-* 	to handle, we look at the device bit map for the appropriate line, and then we determine the highest priority device on that
-* 	line that has a pending interrupt. Note that in the case of a terminal device, which is actually 2 sub-devices, an interrupt
-* 	on transmit is of higher priority than an interrupt on receipt. Next a process which has requested I/O from this device is 
-* 	unblocked, and the device status is returned to it via its v0 register. Finally, the interrupt is acknowledged by placing
-* 	writing the ACK command into the deivce's command field.
+* 	Handling of a Device interrupt entails first determining which device we need to handle. Similar to determining the line to handle, we look 
+*	at the device bit map for the appropriate line, and then we determine the highest priority device on that line that has a pending interrupt.
+*	Note that in the case of a terminal device, which is actually 2 sub-devices, an interrupt on transmit is of higher priority than an 
+*	interrupt on receipt. Next a process which has requested I/O from this device is unblocked, and the device status is returned to it via its
+*	v0 register. Finally, the interrupt is acknowledged by writing the ACK command into the deivce's command field.
 * 																																														
 *	interrupts.c includes types.h, const.h, pcb.e, asl.e, exceptions.e, initial.e, interrupts.e, scheduler.e, 
-* 	and the umps2 library.
-* 	interrupts.c requires the following phase 2 global variables: ready queue, current process, softblock count, semaphore array                    																																																										*
+* 	and the umps2 library
+* 	interrupts.c requires 4 phase 2 global variables: Ready Queue, Current Process, Softblock Count, Semaphore Array                    																																																										*
 *
 ***********************************************************************************************************************************************/
 
