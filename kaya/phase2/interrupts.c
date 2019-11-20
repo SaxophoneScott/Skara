@@ -44,6 +44,7 @@
 #include "../e/interrupts.e"
 #include "../e/scheduler.e"
 
+/* Private/Local Methods */
 HIDDEN int DetermineLine(unsigned int causeReg);
 HIDDEN int DetermineDevice(unsigned int devBitMap);
 HIDDEN void PLTInterruptHandler();

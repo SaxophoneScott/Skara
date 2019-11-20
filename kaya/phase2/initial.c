@@ -43,7 +43,6 @@ int semaphoreArray[SEMCOUNT]; 		/* semaphore for each device and the interval ti
 									8 terminal devices (receive), 
 									interval timer] */
 
-
 HIDDEN void initializeNewArea(state_PTR memArea, memaddr handlerName, memaddr sp, unsigned int status);
 extern void test(); /* method of p2test.c */
 

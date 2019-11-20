@@ -1,32 +1,33 @@
-/****************************** Execptions.c ******************************
+/****************************** Exceptions.c ***************************************************************************************************
 * written by Scott Harrington and Kara Schatz  
 *
 *
-*	Purpose: Exceptions.c holds the foundations of the SYSCALL exceptions, Program Trap exceptions, and TLB Management exceptions.
+*	Purpose: Implements 3 exceptions handlers one for each of: SYSCALL exceptions, Program Trap exceptions, and TLB Management exceptions.
 * 	Whenever a process invokes either a SYSCALL, or breaks a fundamental rule of the operating system, then the appropriate handler is invoked.  
 *
-* 	SYSCALL exceptions are raised when a process executes a SYSACLL assembler instruction. When looking at a SYSCALL exception, 
-* 	we peek into the a0 register to determine which SYSCALL instruction is being called, as well as the status of SycallOld to determine if its in kernel mode or in user mode.
-*	If the instruction called in a0 is between 1-8 and kernel mode is on, then the corresponding SYSCALL instruction executes,
-*	otherwise there is an attempt to call a reserved instruction, and a Program Trap occurs.  When an attempt is made to call a sys 9 and above,
-*	a SYSCALL exception is raised, due to the occurrence that those SYSCALL have not been defined yet.
+* 	SYSCALL exceptions are raised when a process executes a SYSCALL instruction. When handling a SYSCALL exception, the a0 register indicates 
+*	which SYSCALL instruction is being called, and the status of the SYSCALL Old Area's state indicates if it's in kernel mode or in user mode.
+*	If the instruction called in a0 is between 1-8 and kernel mode is on, then the corresponding SYSCALL instruction executes. Otherwise, there
+*	is an attempt to call a reserved instruction, and a Program Trap occurs.  When an attempt is made to call a SYSCALL 9 and above, a SYSCALL 
+*	exception is raised due to the fact that those SYSCALLs have not been defined yet; in this case, we either pass handling up to the process's
+*	handler or we terminate the process.
 *
-* 	Declared SYSCALL excpetions
-*	1-	Create Process, 2- Termiante, 3- Verhogen, 4- Passeren, 5- Specify Exception State Vector, 6- Get Cpu Time, 7-Wait For Clock, 8- Wait for IO
+* 	Handled SYSCALL exceptions
+*		1 - Create Process, 2 - Terminate, 3 - Verhogen, 4 - Passeren, 5 - Specify Exception State Vector, 6 - Get CPU Time, 7 -Wait For Clock, 
+*		8 - Wait for IO
 *
-* 	Program Trap exceptions are raised when a process attempts to perfume an illegal action/undefined action.
-* 	These Program Trap exceptions include Address Errors, Bus Errors, Reserved Instruction, Coprocessor Unstable and Arithmetic overflow. 
+* 	Program Trap exceptions are raised when a process attempts to perform an illegal action/undefined action. These Program Trap exceptions 
+*	include Address Errors, Bus Errors, Reserved Instruction, Coprocessor Unstable and Arithmetic overflow. 
 *
-* 	TLB Management Exceptions are raised when a process attempts to translate a virtual address into its corresponding physical address. 
-* 	Such exceptions include TLB modification, TLB invalid, Bad PgtBl, and PTE-MISS.
+* 	TLB Management Exceptions are raised when a process attempts to translate a virtual address into its corresponding physical address. Such 
+*	exceptions include TLB modification, TLB invalid, Bad PgtBl, and PTE-MISS.
 *
-* 	Whenever an error exception is raised, (Sycall 1-8 in user mode, Syscall 9+, Program traps exceptions, and TLB management exceptions) 
-*	Pass up or die is called with the appropriate exception type.  The process will then be either passed up, meaning that earlier we declared a sys5 on the process, 
-* 	and the process will then continue executing form the appropriate state. Otherwise, we have not called sys5, 
-* 	meaning there is no state area to load, and we sys2 the process, terminate it and its child processes.  
+* 	Whenever an error exception is raised (SYSCALL 1-8 in user mode, SYSCALL 9+, Program traps exceptions, and TLB management exceptions), we 
+*	invoke the Pass Up or Die function with the appropriate exception type. The process will then be either passed up (if earlier the process 
+*	executed a SYS 5), and the process will then continue executing from its own handler. Otherwise, it has not called SYS 5, which means there 
+*	is no state area to load, and we SYS 2 the process: terminate it and its child processes.  
 *
-*
-*******************************************************************/
+***********************************************************************************************************************************************/
 /* included files*/
 #include "../h/const.h"
 #include "../h/types.h"
@@ -37,7 +38,7 @@
 #include "../e/scheduler.e"
 #include "/usr/local/include/umps2/umps/libumps.e"
 
-/* Hidden Methods */
+/* Private/Local Methods */
 HIDDEN void CreateProcess(state_PTR syscallOld, state_PTR newState);
 HIDDEN void TerminateProcess(state_PTR syscallOld, pcb_PTR process);
 HIDDEN void HoneyIKilledTheKids(state_PTR syscallOld, pcb_PTR p);
@@ -51,15 +52,17 @@ HIDDEN void BlockHelperFunction(state_PTR syscallOld, int* semaddr, pcb_PTR proc
 HIDDEN void PassUpOrDie(state_PTR oldState, int exceptionType);
 HIDDEN void CopyState(state_PTR newState, state_PTR oldState);
 
-void SyscallHandler(){
-/* Syscall Handler
-
-Syscall Handler takes in the state pointer of old SYSCALL area, increments the pc by 4.
- SYSCALL requires a check of the status register, to determine if the kernel mode bit is on or off.
-  Look at the a0 register to determine the appropriate SYSCALL instruction. The kernel mode bit is required to be on for SYSCALLS 1-8 to properly execute, 
-  as these are privileged instructions. 9-18 are user instructions that are not implemented yet, and these are treated as SYSCALL Exceptions,
-  and pass up or die is called. While attempts at calling SYSCALL 1-8 in user mode will trigger a Program Trap (Reserved Instruction) Exception, and pass up or die is called. 
+void SyscallHandler()
+/* Handles all SYSCALL exceptions
+SYSCALL Handler checks the state of the old SYSCALL area and increments the pc by 4.
+SYSCALL requires a check of the status register, to determine if the kernel mode bit is on or off.
+It looks at the a0 register to determine the appropriate SYSCALL instruction. The kernel mode bit 
+is required to be on for SYSCALLS 1-8 to properly execute as these are privileged instructions. 
+SYSCALL 9-18 are user instructions that are not implemented yet, which are treated as SYSCALL 
+exceptions and pass up or die is called. While attempts at calling SYSCALL 1-8 in user mode will 
+trigger a Program Trap (Reserved Instruction) Exception, and pass up or die is called. 
 */
+{
 	state_PTR syscallOld = (state_PTR) SYSCALLOLDAREA;				/* state of the process issuing a syscall */
 	syscallOld->s_pc += WORDLEN;									/* increment the pc, so the process will move on when it starts again */
 
@@ -156,55 +159,65 @@ Syscall Handler takes in the state pointer of old SYSCALL area, increments the p
 		}
 	}
 }
-/*
-Program Trap Handler
-When a process makes an illegal call to an instruction or action, it lands here, in the program trap handler.
-From here pass up or die is called to determine what to do with the process. The cause of the program trap is set and stored in the cause register
-automatically, unless it is a reserved instruction programtrap that is from syscall handler, that status is set before continuing excution here in the program
-trap handler
 
-*/
 void ProgramTrapHandler()
+/*
+Handles Program Trap Exceptions
+When a process makes an illegal call to an instruction or action, it lands here, in the program trap handler.
+From here pass up or die is called to determine what to do with the process. The cause of the program trap 
+is set and stored in the cause register automatically, unless it is a reserved instruction program trap that 
+is from the SYSCALL handler. In that case the status is set before continuing execution in the program trap 
+handler.
+*/
 {
 	state_PTR programTrapOld = (state_PTR) PROGRAMTRAPOLDAREA;
 	PassUpOrDie(programTrapOld, PROGRAMTRAPEXCEPTION);
 }
-/*
-TLB ManagementHandler
-when a process tries to translate a virtual address in a corresponding physical address and failed. 
-The status of the TLB management Handler is set automatically, and pass up or die is called to determine the fate of the process. 
-*/
+
 void TLBManagementHandler()
+/*
+Handles TLB Management Exceptions
+When a process tries to translate a virtual address in a corresponding physical address and failed, that 
+exception gets handled here. The status of the TLB Management Handler is set automatically, and pass up 
+or die is called to determine the fate of the process. 
+*/
 {
 	state_PTR TLBManagementOld = (state_PTR) TLBMANAGEMENTOLDAREA;
 	PassUpOrDie(TLBManagementOld, TLBEXCEPTION);
 }
 
-/* helper function to localize potential LDST's */
-/* helper function to localize potential LDST's 
- Its just a function to encapsulate all calls to ldst, used in Scheduler and Interrupts   
-*/
 void LoadState(state_PTR processState)
+/*
+Just a function to encapsulate all calls to LDST, used in Scheduler.c, Exceptions.c, and Interrupts.c
+param: processState - the state to load   
+*/
 {
 	LDST(processState);
 }
-/* Increment Process Time
-	Takes in a pointer to pcb
-	takes in the current time of day, and stores int in the pc total time
-*/
+
 void IncrementProcessTime(pcb_PTR process)
+/* 
+Increments the accumulated process time stored in the pcb to keep track of its used CPU time.
+Uses the current time of day as the processes ending time and the phase 2 global processStartTime
+to know the time used during the most recent execution turn.
+param: process - a pointer to the pcb to update
+*/
 {
 	cpu_t endTime;													/* current time  */
 	STCK(endTime); 
 	process->p_totalTime += (endTime - processStartTime); 			/* increment processor time used based on process start time */
 }
-/* SYS1
-Handles SYSCALL 1, create process
-Allocates a new pcb, checks an error case where there are no new spots for processes, 
-Otherwise copy the state of new process and make a child process of the current process,
-and then insert it into the ready queue. Then continue execution of the calling process. 
- */
+
+/* SYS1 */
 HIDDEN void CreateProcess(state_PTR syscallOld, state_PTR newState)
+/*
+Handles SYSCALL 1: Create Process
+Allocates a new pcb and checks an error case where there are no new spots for processes. 
+Otherwise, copy the state of new process and make this a child process of the current process.
+Then, insert it into the ready queue, and return execution to the calling process. 
+param: syscallOld - the state of the calling process
+param: newState - the state to be copied into the newly allocated process
+*/
 {
 	pcb_PTR newProcess = allocPcb();								/* get a new process */
 
@@ -346,7 +359,7 @@ param: semaddr - the address of the semaphore to be P'ed
 /*SYS5*/
 HIDDEN void ExceptionStateVec(state_PTR syscallOld, unsigned int exceptionType, memaddr oldStateLoc, memaddr newStateLoc)
 /*
-Handles SYSCALL 5: Specify Excpetion State Vector
+Handles SYSCALL 5: Specify Exception State Vector
 Allows the calling process to specify its a vector to use in case of a particular 
 exception type. This vector enables the process to specify where its state will be 
 stored in case of an exception as well as what state should take over in case of an
@@ -357,7 +370,7 @@ If the calling process has already specified a vector for this exception type, t
 the process is killed.
 param: syscallOld - the state of the calling process
 param: exceptionType - the type of exception for which a vector/handler is being set up
-param: oldStateLoc - the address into which the old processor state is to be stroed when
+param: oldStateLoc - the address into which the old processor state is to be stored when
 	   an exception of this type occurs
 param: newStateLoc - the address that is to be taken as the new processor state if an 
 	   exception of this type occurs
@@ -368,7 +381,7 @@ param: newStateLoc - the address that is to be taken as the new processor state 
 	{
 		currentProcess->oldAreas[exceptionType] = (state_PTR) oldStateLoc;
 		currentProcess->newAreas[exceptionType] = (state_PTR) newStateLoc;
-		LoadState(syscallOld);										/* let the calling proccess start running again */
+		LoadState(syscallOld);										/* let the calling process start running again */
 	}
 	/* case: process has already specified one, so kill it */
 	else
@@ -469,14 +482,14 @@ param: process - the process to block
 HIDDEN void PassUpOrDie(state_PTR oldState, int exceptionType)
 /*
 Manages the decision to pass up or die in a given exception situation. Can be used for 
-Syscall/BP exceptions, Program Trap exceptions, and TLB Management exceptions. 
+SYSCALL/BP exceptions, Program Trap exceptions, and TLB Management exceptions. 
 If the process causing the exception has specified an exception state vector for the 
 specific exception type in question, then execution gets "passed up" to its vector/handler.
 If the process causing the exception has not specified an exception state vector for the
-excption type in question, then the process is killed.
+exception type in question, then the process is killed.
 param: oldState - the state of the process that caused the exception
 param: exceptionType - value indicating which type of exception is being dealt with
-	   0 for TLB Trap, 1 for Program Trap, 2 for Syscall
+	   0 for TLB Trap, 1 for Program Trap, 2 for SYSCALL
 */
 {
 	/* case: DIE - an exception state vector (SYS5) has not be set up */
