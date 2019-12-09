@@ -175,6 +175,7 @@ void readTape(int procNum)
 	
 	while(tapeStatus == READY && moreToRead) 
 	{
+		device_t* backingStore;
 		/* get mutex of disk0 */
 		int diskLineNum = DISKLINE;
 		int diskDeviceNum = BACKINGSTORE;
@@ -183,11 +184,11 @@ void readTape(int procNum)
 
 		allowInterrupts(FALSE);
 		/* write to disk0 */
-		device_t* backingStore = (device_t*) (BASEDEVICEADDRESS + ((diskLineNum - INITIALDEVLINENUM) * DEVICETYPESIZE) + (diskDeviceNum * DEVICESIZE));
-		backingStore->d_command = SEEKCYL + (getCylinderNum(i) << DISKCOMMANDSHIFT);
+		backingStore = (device_t*) (BASEDEVICEADDRESS + ((diskLineNum - INITIALDEVLINENUM) * DEVICETYPESIZE) + (diskDeviceNum * DEVICESIZE));
+		backingStore->d_command = SEEKCYL + (getCylinderNum(i) << DEVICECOMMANDSHIFT);
 		SYSCALL(WAITFORIO, diskLineNum, diskDeviceNum, zero);
 
-		backingStore->d_command = WRITEBLK + (getSectorNum(procNum) << DISKCOMMANDSHIFT) + (KUSEG2HEAD << 2*DISKCOMMANDSHIFT);
+		backingStore->d_command = WRITEBLK + (getSectorNum(procNum) << DEVICECOMMANDSHIFT) + (KUSEG2HEAD << 2*DEVICECOMMANDSHIFT);
 		backingStore->d_data0 = getTapeBufferAddr(tapeDeviceNum); /* getDiskBufferAddr(diskDeviceNum); */ /* starting addr from where to find stuff to write */
 		SYSCALL(WAITFORIO, diskLineNum, diskDeviceNum, zero);
 

@@ -1,14 +1,17 @@
 /* Private/Local Methods */
-HIDDEN void ReadFromTerminal(state_PTR syscallOld, char* destAddr);
-HIDDEN void WriteToTerminal(state_PTR syscallOld, char* sourceAddr, int length);
+HIDDEN void ReadFromTerminal(int asid, state_PTR syscallOld, char* destAddr);
+HIDDEN void WriteToTerminal(int asid, state_PTR syscallOld, char* sourceAddr, int length);
 /* HIDDEN void DiskPut(state_PTR syscallOld, int* blockAddr, int diskNum, int sector); */
 /* HIDDEN void DiskGet(state_PTR syscallOld, int* blockAddr, int diskNum, int sector); */
-HIDDEN void WriteToPrinter(state_PTR syscallOld, char* sourceAddr, int length);
+HIDDEN void WriteToPrinter(int asid, state_PTR syscallOld, char* sourceAddr, int length);
 HIDDEN void GetTOD(state_PTR syscallOld);
-HIDDEN void UserTerminate(state_PTR syscallOld);
+HIDDEN void UserTerminate(int asid, state_PTR syscallOld);
 
 void UserSyscallHandler()
 {
+	/* int asid;
+	state_PTR syscallOld; */
+
 	/* who am I? */
 	int asid = (getENTRYHI() && ASIDMASK) >> ASIDSHIFT;
 
@@ -27,20 +30,20 @@ void UserSyscallHandler()
 		case READFROMTERMINAL:
 			/* a1: virtual address to place data read */
 			/* v0: if successful: number of characters transmitted, else negative of device's status */
-			ReadFromTerminal(syscallOld, (char*) l_a1);
+			ReadFromTerminal(asid, syscallOld, (char*) l_a1);
 			break;
 		/* SYS 10 */
 		case WRITETOTERMINAL:
 			/* a1: virtual address of first character */
 			/* a2: length of the string */
 			/* v0: if successful: number of characters transmitted, else negative of device's status */
-			WriteToTerminal(syscallOld, (char*) l_a1, (int) l_a2);
+			WriteToTerminal(asid, syscallOld, (char*) l_a1, (int) l_a2);
 			break;
 		/* SYS 16 */
 		case WRTIETOPRINTER:
 			/* a1: virtual address of first character */
 			/* a2: length of the string */
-			WriteToPrinter(syscallOld, (char*) l_a1, (int) l_a2);
+			WriteToPrinter(asid, syscallOld, (char*) l_a1, (int) l_a2);
 			break;
 		/* SYS 17 */
 		case GETTOD:
@@ -48,47 +51,97 @@ void UserSyscallHandler()
 			break;
 		/* SYS 18 */
 		case USERTERMINATE:
-			UserTerminate(syscallOld);
+			UserTerminate(asid, syscallOld);
 			break;
 		/* unimplemented SYSCALL */
 		default:
 			/* what do we do here????? KILL? */
 			/* we don't handle these, so pass up or die*/
-			PassUpOrDie(syscallOld, SYSCALLEXCEPTION);
+			/* PassUpOrDie(syscallOld, SYSCALLEXCEPTION); */
+			SYSCALL(USERTERMINATE, 0, 0, 0);
 
 	}
 }
 
 void UserProgramTrapHandler()
 {
+	/* bascially just do a sys 18 here */
 	
 }
 
-HIDDEN void ReadFromTerminal(state_PTR syscallOld, char* destAddr){}
+HIDDEN void ReadFromTerminal(int asid, state_PTR syscallOld, char* destAddr){}
 
-HIDDEN void WriteToTerminal(state_PTR syscallOld, char* sourceAddr, int length)
+HIDDEN void WriteToTerminal(int asid, state_PTR syscallOld, char* sourceAddr, int length)
 {
-	char * s = sourceAddr;
-	devregtr * base = (devregtr *) (TERM0ADDR);
-	devregtr status;
+	int i; 
+	char * s;
+	int deviceNum;
+	device_t* deviceAddr;
+	unsigned int status;
+	int deviceIndex;
+
+	/* if it's a badd address or a bad length, kill them */
+	if(sourceAddr < LEGALADDRSTART || length < 0)
+	{
+		/* kill with SYS 18*/
+		SYSCALL(USERTERMINATE, 0, 0, 0);
+	}
+	i = 0; 			/* counter for number of characters transmitted */
+	/* char * s = msg; */
+	s = sourceAddr;
+	/* devregtr * base = (devregtr *) (TERM0ADDR); */
+	deviceNum = asid-1;
+	deviceAddr = (device_t*) (BASEDEVICEADDRESS + ((TERMINALLINE - INITIALDEVLINENUM) * DEVICETYPESIZE) + (deviceNum * DEVICESIZE));
+	/* devregtr status; */
+	status;
 	
-	SYSCALL(PASSERN, (int)&term_mut, 0, 0);				/* P(term_mut) */
+	/* SYSCALL(PASSERN, (int)&term_mut, 0, 0); */			/* P(term_mut) */
+	deviceIndex = (TERMINALLINE - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + deviceNum;
+	SYSCALL(PASSERN, &deviceSema4s[deviceIndex], 0, 0);
 	while (*s != EOS) {
-		*(base + 3) = PRINTCHR | (((devregtr) *s) << BYTELEN);
-		status = SYSCALL(WAITIO, TERMINT, 0, 0);	
-		if ((status & TERMSTATMASK) != RECVD)
-			PANIC();
+		/* *(base + 3) = PRINTCHR | (((devregtr) *s) << BYTELEN); */
+		enableInterrupts(FALSE);
+		deviceAddr->t_transm_command = TRANSMITCHAR | (((unsigned int) *s) << DEVICECOMMANDSHIFT);
+		/* status = SYSCALL(WAITIO, TERMINT, 0, 0);	*/
+		status = SYSCALL(WAITFORIO, TERMINALLINE, deviceNum, FALSE);
+		enableInterrupts(TRUE);
+		if ((status & TERMINALSTATUSMASK) != CHARTRANSMITTED)
+		{
+			/* PANIC(); */
+			syscallOld->s_v0 = -status;
+			SYSCALL(VERHOGEN, &deviceSema4s[deviceIndex], 0, 0);	
+			LDST(syscallOld);
+		}
+		i++;
 		s++;	
 	}
-	SYSCALL(VERHOGEN, (int)&term_mut, 0, 0);				/* V(term_mut) */
+	SYSCALL(VERHOGEN, &deviceSema4s[devIndex], 0, 0);				/* V(term_mut) */
+	syscallOld->s_v0 = i;
+	LDST(syscallOld);
 }
 
-HIDDEN void DiskPut(state_PTR syscallOld, int* blockAddr, int diskNum, int sector){}
+/* HIDDEN void DiskPut(state_PTR syscallOld, int* blockAddr, int diskNum, int sector){}
 
-HIDDEN void DiskGet(state_PTR syscallOld, int* blockAddr, int diskNum, int sector){}
+HIDDEN void DiskGet(state_PTR syscallOld, int* blockAddr, int diskNum, int sector){} */
 
-HIDDEN void WriteToPrinter(state_PTR syscallOld, char* sourceAddr, int length){}
+HIDDEN void WriteToPrinter(int asid, state_PTR syscallOld, char* sourceAddr, int length){}
 
-HIDDEN void GetTOD(state_PTR syscallOld){}
+HIDDEN void GetTOD(state_PTR syscallOld)
+{
+	devregarea_t* busReg = (devregarea_t*) RAMBASEADDR;
+	syscallOld->s_v0 = busReg->todlo;
+	LDST(syscallOld);
+}
 
-HIDDEN void UserTerminate(state_PTR syscallOld){}
+HIDDEN void UserTerminate(int asid, state_PTR syscallOld)
+{
+	/* release any mutex we have */
+	if(userProcArray[asid-1].sema4 != NULL)
+	{
+		SYSCALL(VERHOGEN, &userProcArray[asid-1].sema4, 0, 0);
+	}
+	/* V the master sema4 */
+	SYSCALL(VERHOGEN, &masterSem4, 0, 0);
+	/* terminate */
+	SYSCALL(TERMINATEPROCESS, 0, 0, 0);
+}

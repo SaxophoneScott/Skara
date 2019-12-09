@@ -116,4 +116,46 @@ typedef struct semd_t{
 	pcb_t 			*s_procQ; 	/* tail pointer to a process queue */
 } semd_t;
 
+/* page table entry */
+typedef struct pagetbe_t{
+	unsigned int 	entryHi;
+	unsigned int 	entryLo;
+} pagetbe_t;
+
+/* kuseg2/3 page table */
+typedef struct kupagetable_t{
+	unsigned int 	header;
+	pagetbe_t 		entries[MAXKUSEG];	
+} pagetable_t;
+
+/* ksegos3 page table */
+typedef struct ospagetable_t{
+	unsigned int 	header;
+	pagetbe_t 		entries[MAXKSEGOS];	
+} pagetable_t;
+
+/* segment table */
+typedef struct segtable_t{
+	pagetable_t		ksegos,
+					kuseg2;
+					kuseg3;	
+} segtable_t;
+
+/* swap pool entry */
+typedef struct frameswappoole_t{
+	int 			ASID,
+					segNum,
+					pageNum;
+	pagetbe_t*		pagetbentry; 	/* optional */
+} swappoole_t;
+
+typedef struct upcb_t{
+	int 			sema4,
+	kupagetable_t	kuseg2PT;
+	unsigned int 	backingStoreAddr;
+	state_t*		oldAreas[TRAPTYPES];	/* [TLB, programtrap, syscall] */
+	state_t*		newAreas[TRAPTYPES];	/* [TLB, programtrap, syscall] */
+
+} upcb_t;
+
 #endif

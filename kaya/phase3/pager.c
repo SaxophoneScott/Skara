@@ -2,15 +2,23 @@
 
 void Pager()
 {
+	devregarea_t* busReg;
+	unsigned int framePoolStart;
+	int asid; 
+	unsigned int cause;
+	int excCode;
+	int segment;
+	int page;
+	int frame;
 	/* establish frame pool address */
-	devregarea_t* busReg = (devregarea_t*) RAMBASEADDR;
+	busReg = (devregarea_t*) RAMBASEADDR;
 	framePoolStart = (busReg->rambase + busReg->ramsize) - ((POOLSIZE + 3) * PAGESIZE);
 	/* who am i? */
-	int asid = (getENTRYHI() && ASIDMASK) >> ASIDSHIFT;	
+	asid = (getENTRYHI() && ASIDMASK) >> ASIDSHIFT;	
 
 	/* why am i here? */
-	unsigned int cause = procArray[asid-1].oldAreas[TLBEXCEPTION]->s_cause;
-	int excCode = cause & EXCCODEMASK >> EXCCODESHIFT;
+	cause = procArray[asid-1].oldAreas[TLBEXCEPTION]->s_cause;
+	excCode = cause & EXCCODEMASK >> EXCCODESHIFT;
 	/* if it's not an invalid load or store, then just kill it. sorry :( */
 	if(excCode != TLBINVALIDLOAD && excCode != TLBINVALIDSTORE)
 	{
@@ -18,8 +26,8 @@ void Pager()
 	}
 
 	/* get page num and segment num */
-	int segment = (procArray[asid-1].oldAreas[TLBEXCEPTION]->s_HI & SEGMASK) >> SEGSHIFT;
-	int page = (procArray[asid-1].oldAreas[TLBEXCEPTION]->s_HI & PAGEMASK) >> PAGESHIFT;
+	segment = (procArray[asid-1].oldAreas[TLBEXCEPTION]->s_HI & SEGMASK) >> SEGSHIFT;
+	page = (procArray[asid-1].oldAreas[TLBEXCEPTION]->s_HI & PAGEMASK) >> PAGESHIFT;
 
 	/* gain mutex of swap pool */
 	SYSCALL(PASSEREN, &swapmutex, 0, 0);
@@ -38,7 +46,9 @@ void Pager()
 	}
 
 	/* the page ain't there, so we gotta problem to fix */
-	int frame = findFrame();
+	frame = findFrame();
+	int deviceIndex;
+	device_t* backingStore;
 
 	/* uh oh the frame is occupied... there can only be one of us, so time to give them the boot */
 	if(frameSwapPool[frame].ASID != UNOCCUPIEDFRAME)
@@ -65,18 +75,16 @@ void Pager()
 
 		/* assume the page is dirty, so write it to backing store */
 		/* get mutex of disk0 */
-		int diskLineNum = DISKLINE;
-		int diskDeviceNum = BACKINGSTORE;
-		int devIndex = (diskLineNum - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + diskDeviceNum;
+		devIndex = (DISKLINE - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + BACKINGSTORE;
 		SYSCALL(PASSEREN, &(deviceSema4s[devIndex]), zero, zero);
 
 		allowInterrupts(FALSE);
 		/* write to disk0 */
-		device_t* backingStore = (device_t*) (BASEDEVICEADDRESS + ((diskLineNum - INITIALDEVLINENUM) * DEVICETYPESIZE) + (diskDeviceNum * DEVICESIZE));
-		backingStore->d_command = SEEKCYL + getCylinderNum(pageToBoot) << DISKCOMMANDSHIFT;
+		backingStore = (device_t*) (BASEDEVICEADDRESS + ((DISKLINE - INITIALDEVLINENUM) * DEVICETYPESIZE) + (BACKINGSTORE * DEVICESIZE));
+		backingStore->d_command = SEEKCYL + getCylinderNum(pageToBoot) << DEVICECOMMANDSHIFT;
 		SYSCALL(WAITFORIO, diskLineNum, diskDeviceNum, zero);
 
-		backingStore->d_command = WRITEBLK + (getSectorNum(freeloader) << DISKCOMMANDSHIFT) + (getHeadNum(segToBoot) << 2*DISKCOMMANDSHIFT);
+		backingStore->d_command = WRITEBLK + (getSectorNum(freeloader) << DEVICECOMMANDSHIFT) + (getHeadNum(segToBoot) << 2*DEVICECOMMANDSHIFT);
 		backingStore->d_data0 = getFrameAddr(framePoolStart, frame); /* starting addr from where to find stuff to write */
 		SYSCALL(WAITFORIO, diskLineNum, diskDeviceNum, zero);
 
@@ -88,18 +96,16 @@ void Pager()
 	/* read missing page into selected frame */
 	
 	/* get mutex of disk0 */
-	int diskLineNum = DISKLINE;
-	int diskDeviceNum = BACKINGSTORE;
-	int devIndex = (diskLineNum - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + diskDeviceNum;
+	devIndex = (DISKLINE - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + BACKINGSTORE;
 	SYSCALL(PASSEREN, &(deviceSema4s[devIndex]), zero, zero);
 
 	allowInterrupts(FALSE);
 	/* write to disk0 */
-	device_t* backingStore = (device_t*) (BASEDEVICEADDRESS + ((diskLineNum - INITIALDEVLINENUM) * DEVICETYPESIZE) + (diskDeviceNum * DEVICESIZE));
-	backingStore->d_command = SEEKCYL + getCylinderNum(page) << DISKCOMMANDSHIFT;
+	backingStore = (device_t*) (BASEDEVICEADDRESS + ((DISKLINE - INITIALDEVLINENUM) * DEVICETYPESIZE) + (BACKINGSTORE * DEVICESIZE));
+	backingStore->d_command = SEEKCYL + getCylinderNum(page) << DEVICECOMMANDSHIFT;
 	SYSCALL(WAITFORIO, diskLineNum, diskDeviceNum, zero);
 
-	backingStore->d_command = READBLK + (getSectorNum(asid) << DISKCOMMANDSHIFT) + (getHeadNum(segment) << 2*DISKCOMMANDSHIFT);
+	backingStore->d_command = READBLK + (getSectorNum(asid) << DEVICECOMMANDSHIFT) + (getHeadNum(segment) << 2*DEVICECOMMANDSHIFT);
 	backingStore->d_data0 = getFrameAddr(framePoolStart, frame); /* starting addr to write the data retrieved */
 	SYSCALL(WAITFORIO, diskLineNum, diskDeviceNum, zero);
 

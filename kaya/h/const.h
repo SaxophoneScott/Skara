@@ -33,6 +33,7 @@
 #define INTERRUPTOLDAREA		0x20000000
 
 /* values for controlling bits in the status register */
+#define ALLON					0xFFFFFFFF
 #define ALLOFF					0x00000000
 #define VMON					0x01000000
 #define INITVMOFF					0x00000000
@@ -43,9 +44,13 @@
 #define CURRINTERRUPTSUNMASKED	0x00000001
 #define INTERRUPTMASKOFF 		0x00000000 	/* change this later maybe */
 #define INTERRUPTMASKON			0x0000FF00
-#define TEBITON				0x08000000	/* timer enable bit*/
+#define TEBITON					0x08000000	/* timer enable bit*/
 /* values for controlling bits in the cause register */
 #define PRIVILEDGEDINSTR		0x00000028
+#define EXCOCDEMASK				0x0000003C
+#define EXCCODESHIFT			2
+#define TLBINVALIDLOAD			2
+#define TLBINVALIDSTORE			3
 
 /* need one semaphore for each external device that is not terminal + 2 for each terminal device + 1 for the clock
 	external devices:
@@ -57,8 +62,9 @@
 	so 4*8 + 2*8 + 1 = 49 total semaphores 
 	The order of the semaphore array is as follows:	
 		[8 disk devices, 8 tape devices, 8 network adapters, 8 printer devices, 8 terminal device transmitters, 8 terminal device receivers, timer] */
-#define SEMCOUNT 			49
-#define ITSEMINDEX			48
+#define DEVICECOUNT			48
+#define SEMCOUNT 			DEVICECOUNT + 1
+#define ITSEMINDEX			48	
 #define INITIALDEVLINENUM 	3
 #define NUMDEVICESPERTYPE 	8
 #define BASEDEVICEADDRESS	0x10000050
@@ -168,4 +174,80 @@ and devince number in interruping devices bit map */
 #define PLTTIME 		5000
 #define INTERVALTIME	100000
 #define SUSPENDTIME 	420420
+
+/* phase 3 things */
+#define LEGALADDRSTART		0x80000000
+#define PROCCNT				8
+#define MAXKUSEG			32
+#define MAXKSEGOS			MAXKUSEG * 2
+#define POOLSIZE			PROCCNT * 2  /* change this */
+#define KSEGOSSTART			0x20000
+#define KUSEG2START			0x80000
+#define LASTPAGEKUSEG2		0xC0000000
+#define	KUSEG3START			0xC0000
+#define KUSEG2LAST			0xBFFFF
+#define DIRTYON				0x00000400
+#define VALIDON				0x00000100
+#define GLOBALON			0x00000080
+#define UNOCCUPIEDFRAME		-1
+#define MUTEXINIT			1
+#define SYNCINIT			0
+#define PAGESHIFT			12
+#define FRAMESHIFT			12	
+#define ASIDSHIFT			6
+#define ASIDMASK			0x00000FC0
+#define UPROCPCINIT			0x800000B0
+#define DEVICECOMMANDSHIFT	8
+#define TERMINALSTATUSMASK	0xFF
+
+/* buffer and stack stuff */
+#define OSFRAMES			30
+#define UPROCSTACKSIZE		3
+#define KSEGOSPTSIZE		
+#define TAPEBUFFERSTART		ROMPAGESTART + (OSFRAMES * PAGESIZE)
+#define DISKBUFFERSTART		TAPEBUFFERSTART + (NUMDEVICES * PAGESIZE)
+#define STACKPOOLSTART		DISKBUFFERSTART + (NUMDEVICES * PAGESIZE)
+#define 
+
+#define ENABLEINTERRUPTS	0x00000004
+#define DISABLEINTERRUPTS	0xFFFFFFFB
+
+#define SEGMASK				0xC0000000
+#define PAGEMASK			0x3FFFF000
+#define SEGSHIFT			30
+#define VALIDMASK			0x00000200
+#define VALIDSHIFT			9
+#define FRAMENUMMASK		0x00000FFF
+
+#define KUSEG2 				2
+#define KUSEG3 				3
+#define KUSEG2HEAD			0
+#define KUSEG3HEAD			1
+
+/* device code stuff */
+#define READBLK				3
+#define EOB					2
+#define SEEKCYL				2
+#define WRITEBLK			4
+#define TRANSMITCHAR		2
+#define CHARTRANSMITTED		5
+
+#define BACKINGSTORE		0
+#define DISKLINE			3
+#define TAPELINE			4
+#define PRINTERLINE			6
+#define TERMINALLINE		7
+
+/* user level syscalls */
+#define READFROMTERMINAL	9
+#define WRITETOTERMINAL		10
+#define VVIRTUAL			11
+#define PVIRTUAL			12
+#define DELAY				13
+#define DISKPUT				14
+#define DISKGET				15
+#define WRITETOPRINTER		16
+#define GETTOD				17
+#define USERTERMINATE 		18
+
 #endif
