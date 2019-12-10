@@ -16,8 +16,8 @@ extern int					swapmutex;
 extern int					deviceSema4s[DEVICECOUNT]; 
 /* structs */
 extern segtable_t				segTable[PROCCNT];
-extern ospagetable_t*				ksegosPT;
-extern kupagetable_t*				kuseg3PT;
+extern ospagetable_t				ksegosPT;
+extern kupagetable_t				kuseg3PT;
 extern upcb_t					userProcArray[PROCCNT];
 extern frameswappoole_t				frameSwapPool[POOLSIZE];
 

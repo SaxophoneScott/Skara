@@ -14,8 +14,8 @@ int 					swapmutex;
 int 					deviceSema4s[DEVICECOUNT];
 /* structs */
 struct segtable_t 				segTable[PROCCNT];
-ospagetable_t*			ksegosPT;
-kupagetable_t*			kuseg3PT;
+ospagetable_t			ksegosPT;
+kupagetable_t			kuseg3PT;
 struct upcb_t					userProcArray[PROCCNT];
 struct frameswappoole_t		frameSwapPool[POOLSIZE];
 
@@ -35,28 +35,33 @@ void test()
 	/* initializing all phase 3 globals */
 
 	/* ksegOS page table */
-	debug(MAGICNUM, MAGICNUMSHIFT, MAXKSEGOS, &(ksegosPT->header));
-	ksegosPT->header = (MAGICNUM << MAGICNUMSHIFT) + MAXKSEGOS;
+	debug(MAGICNUM, MAGICNUMSHIFT, MAXKSEGOS, (int)&(ksegosPT.header));
+	ksegosPT.header = (MAGICNUM << MAGICNUMSHIFT) + MAXKSEGOS;
 	debug(0,0,0,0);
 
 	for(i = 0; i < MAXKSEGOS; i++)
 	{
+		debug(0,0,0,0);
 		getHeadNum(2);
 		/* entryHi = 0x20000 + i (ASID is irrelephant) */
-		ksegosPT->entries[i].entryHi = (KSEGOSSTART + i) << PAGESHIFT;
+		ksegosPT.entries[i].entryHi = (KSEGOSSTART + i) << PAGESHIFT;
 		/* entryLo = 0x20000 + i with dirty, valid, global */
-		ksegosPT->entries[i].entryLo = (KSEGOSSTART + i) | DIRTYON | VALIDON | GLOBALON;
+		ksegosPT.entries[i].entryLo = (KSEGOSSTART + i) | DIRTYON | VALIDON | GLOBALON;
 	}
+	debug(0,0,0,0);
 
 	/* init kuseg3 page table */
-	kuseg3PT->header = (MAGICNUM << MAGICNUMSHIFT) + MAXKUSEG;
+	kuseg3PT.header = (MAGICNUM << MAGICNUMSHIFT) + MAXKUSEG;
+	debug(0,0,0,0);
 	for(i = 0; i < MAXKUSEG; i++)
 	{
 		/* entryHi = 0xC0000 + i */
-		kuseg3PT->entries[i].entryHi = (KUSEG3START + i) << PAGESHIFT;
+		debug(0,0,0,0);
+		kuseg3PT.entries[i].entryHi = (KUSEG3START + i) << PAGESHIFT;
 		/* entryLo = dirty, global */
-		kuseg3PT->entries[i].entryLo = ALLOFF | DIRTYON | GLOBALON;
+		kuseg3PT.entries[i].entryLo = ALLOFF | DIRTYON | GLOBALON;
 	}
+	debug(0,0,0,0);
 
 	/* swap pool */
 	for(i = 0; i < POOLSIZE; i++)
@@ -79,25 +84,25 @@ void test()
 	for(n = 1; n < PROCCNT+ 1; n++)
 	{
 		/* setup proc n's  kuseg2 page table */
-		userProcArray[n-1].kuseg2PT->header = (MAGICNUM << MAGICNUMSHIFT) + MAXKUSEG;
+		userProcArray[n-1].kuseg2PT.header = (MAGICNUM << MAGICNUMSHIFT) + MAXKUSEG;
 		for(i = 0; i < MAXKUSEG; i++)
 		{
 			/* entryHi = 0x80000 + i with ASID n */
-			userProcArray[n-1].kuseg2PT->entries[i].entryHi = ((KUSEG2START + i) << PAGESHIFT) + (n << ASIDSHIFT);  /* should this be +i or +n??? */
+			userProcArray[n-1].kuseg2PT.entries[i].entryHi = ((KUSEG2START + i) << PAGESHIFT) + (n << ASIDSHIFT);  /* should this be +i or +n??? */
 			/* entryLo = no frame #, dirty, not valid, not global */
-			userProcArray[n-1].kuseg2PT->entries[i].entryLo = ALLOFF | DIRTYON;
+			userProcArray[n-1].kuseg2PT.entries[i].entryLo = ALLOFF | DIRTYON;
 		}
 		/* fix last entry's entryHi to be 0xBFFFF w/ ASID n */
-		userProcArray[PROCCNT-1].kuseg2PT->entries[MAXKUSEG-1].entryHi = (KUSEG2LAST << PAGESHIFT) + (n << ASIDSHIFT);
+		userProcArray[PROCCNT-1].kuseg2PT.entries[MAXKUSEG-1].entryHi = (KUSEG2LAST << PAGESHIFT) + (n << ASIDSHIFT);
 
 		/* setup appropriate 3 entries (for proc n) in global segment table */
 			/* ksegOS = global var table
 			   kuseg2 = process's table we just set up
 			   kuseg3 = global var table
 			*/
-		segTable[n-1].ksegos = ksegosPT;
-		segTable[n-1].kuseg2 = userProcArray[n-1].kuseg2PT;
-		segTable[n-1].kuseg3 = kuseg3PT;
+		segTable[n-1].ksegos = &ksegosPT;
+		segTable[n-1].kuseg2 = &(userProcArray[n-1].kuseg2PT);
+		segTable[n-1].kuseg3 = &kuseg3PT;
 
 		/* setup initial process state */
 			/* ASID = n

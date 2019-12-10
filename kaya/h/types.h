@@ -151,7 +151,7 @@ typedef struct frameswappoole_t{
 
 typedef struct upcb_t{
 	int* 			sema4;
-	kupagetable_t*		kuseg2PT;
+	kupagetable_t		kuseg2PT;
 	unsigned int 		backingStoreAddr;
 	state_t*		oldAreas[TRAPTYPES];	/* [TLB, programtrap, syscall] */
 	state_t*		newAreas[TRAPTYPES];	/* [TLB, programtrap, syscall] */

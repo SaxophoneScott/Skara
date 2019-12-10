@@ -44,7 +44,7 @@ void Pager()
 	/* if it's seg 3 then it might be here already */
 	if(segment == KUSEG3)
 	{
-		pagetbe_t pageTableEntry = kuseg3PT->entries[page];
+		pagetbe_t pageTableEntry = segTable[asid-1].kuseg3->entries[page];
 		unsigned int valid = (pageTableEntry.entryLo & VALIDMASK) >> VALIDSHIFT;
 		/* if the page is already there, then our job is done, so let's quit */
 		if(valid)
@@ -69,7 +69,7 @@ void Pager()
 		{
 			/* turn the valid bit off */
 			allowInterrupts(FALSE);
-			kuseg3PT->entries[pageToBoot].entryLo = kuseg3PT->entries[pageToBoot].entryLo ^ VALIDON;
+			segTable[freeloader-1].kuseg3->entries[pageToBoot].entryLo = segTable[freeloader-1].kuseg3->entries[pageToBoot].entryLo ^ VALIDON;
 			TLBCLR();
 			allowInterrupts(TRUE);
 		}
@@ -77,7 +77,7 @@ void Pager()
 		{
 			/* turn the valid bit off */
 			allowInterrupts(FALSE);
-			userProcArray[freeloader-1].kuseg2PT->entries[pageToBoot].entryLo = userProcArray[freeloader-1].kuseg2PT->entries[pageToBoot].entryLo ^ VALIDON;
+			userProcArray[freeloader-1].kuseg2PT.entries[pageToBoot].entryLo = userProcArray[freeloader-1].kuseg2PT.entries[pageToBoot].entryLo ^ VALIDON;
 			TLBCLR();
 			allowInterrupts(TRUE);
 		}
@@ -131,7 +131,7 @@ void Pager()
 	{
 		/* turn the valid bit on */
 		allowInterrupts(FALSE);
-		kuseg3PT->entries[page].entryLo = (frame << FRAMESHIFT) + ((kuseg3PT->entries[page].entryLo | VALIDON) & FRAMENUMMASK);
+		segTable[asid-1].kuseg3->entries[page].entryLo = (frame << FRAMESHIFT) + ((segTable[asid-1].kuseg3->entries[page].entryLo | VALIDON) & FRAMENUMMASK);
 		TLBCLR();
 		allowInterrupts(TRUE);
 	}
@@ -139,7 +139,7 @@ void Pager()
 	{
 		/* turn the valid bit off */
 		allowInterrupts(FALSE);
-		userProcArray[asid-1].kuseg2PT->entries[page].entryLo = (frame << FRAMESHIFT) + ((userProcArray[asid-1].kuseg2PT->entries[page].entryLo | VALIDON) & FRAMENUMMASK);
+		userProcArray[asid-1].kuseg2PT.entries[page].entryLo = (frame << FRAMESHIFT) + ((userProcArray[asid-1].kuseg2PT.entries[page].entryLo | VALIDON) & FRAMENUMMASK);
 		TLBCLR();
 		allowInterrupts(TRUE);
 	}
