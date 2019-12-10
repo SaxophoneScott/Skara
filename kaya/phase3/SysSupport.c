@@ -46,7 +46,7 @@ void UserSyscallHandler()
 			WriteToTerminal(asid, syscallOld, (char*) l_a1, (int) l_a2);
 			break;
 		/* SYS 16 */
-		case WRTIETOPRINTER:
+		case WRITETOPRINTER:
 			/* a1: virtual address of first character */
 			/* a2: length of the string */
 			WriteToPrinter(asid, syscallOld, (char*) l_a1, (int) l_a2);
@@ -88,7 +88,7 @@ HIDDEN void WriteToTerminal(int asid, state_PTR syscallOld, char* sourceAddr, in
 	int deviceIndex;
 
 	/* if it's a badd address or a bad length, kill them */
-	if(sourceAddr < LEGALADDRSTART || length < 0)
+	if((int)sourceAddr < LEGALADDRSTART || length < 0)
 	{
 		/* kill with SYS 18*/
 		SYSCALL(USERTERMINATE, 0, 0, 0);
@@ -100,29 +100,28 @@ HIDDEN void WriteToTerminal(int asid, state_PTR syscallOld, char* sourceAddr, in
 	deviceNum = asid-1;
 	deviceAddr = (device_t*) (BASEDEVICEADDRESS + ((TERMINALLINE - INITIALDEVLINENUM) * DEVICETYPESIZE) + (deviceNum * DEVICESIZE));
 	/* devregtr status; */
-	status;
 	
 	/* SYSCALL(PASSERN, (int)&term_mut, 0, 0); */			/* P(term_mut) */
 	deviceIndex = (TERMINALLINE - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + deviceNum;
-	SYSCALL(PASSERN, &deviceSema4s[deviceIndex], 0, 0);
+	SYSCALL(PASSEREN, (int)&deviceSema4s[deviceIndex], 0, 0);
 	while (*s != EOS) {
 		/* *(base + 3) = PRINTCHR | (((devregtr) *s) << BYTELEN); */
-		enableInterrupts(FALSE);
+		allowInterrupts(FALSE);
 		deviceAddr->t_transm_command = TRANSMITCHAR | (((unsigned int) *s) << DEVICECOMMANDSHIFT);
 		/* status = SYSCALL(WAITIO, TERMINT, 0, 0);	*/
 		status = SYSCALL(WAITFORIO, TERMINALLINE, deviceNum, FALSE);
-		enableInterrupts(TRUE);
+		allowInterrupts(TRUE);
 		if ((status & TERMINALSTATUSMASK) != CHARTRANSMITTED)
 		{
 			/* PANIC(); */
 			syscallOld->s_v0 = -status;
-			SYSCALL(VERHOGEN, &deviceSema4s[deviceIndex], 0, 0);	
+			SYSCALL(VERHOGEN, (int)&deviceSema4s[deviceIndex], 0, 0);	
 			LDST(syscallOld);
 		}
 		i++;
 		s++;	
 	}
-	SYSCALL(VERHOGEN, &deviceSema4s[devIndex], 0, 0);				/* V(term_mut) */
+	SYSCALL(VERHOGEN, (int)&deviceSema4s[deviceIndex], 0, 0);				/* V(term_mut) */
 	syscallOld->s_v0 = i;
 	LDST(syscallOld);
 }
@@ -136,7 +135,7 @@ HIDDEN void WriteToPrinter(int asid, state_PTR syscallOld, char* sourceAddr, int
 HIDDEN void GetTOD(state_PTR syscallOld)
 {
 	/* devregarea_t* busReg = (devregarea_t*) RAMBASEADDR;
-	syscallOld->s_v0 = busReg->todlo; *?
+	syscallOld->s_v0 = busReg->todlo; */
 	STCK(syscallOld->s_v0);
 	LDST(syscallOld);
 }
@@ -146,10 +145,10 @@ HIDDEN void UserTerminate(int asid, state_PTR syscallOld)
 	/* release any mutex we have */
 	if(userProcArray[asid-1].sema4 != NULL)
 	{
-		SYSCALL(VERHOGEN, &userProcArray[asid-1].sema4, 0, 0);
+		SYSCALL(VERHOGEN, (int)&userProcArray[asid-1].sema4, 0, 0);
 	}
 	/* V the master sema4 */
-	SYSCALL(VERHOGEN, &masterSem4, 0, 0);
+	SYSCALL(VERHOGEN, (int)&masterSem4, 0, 0);
 	/* terminate */
 	SYSCALL(TERMINATEPROCESS, 0, 0, 0);
 }
