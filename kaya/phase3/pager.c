@@ -1,4 +1,7 @@
 /* int nextFrame = 0; */
+HIDDEN int findFrame();
+HIDDEN unsigned int getFrameAddr(unsigned int framePoolStart, int frameNum);
+
 
 void Pager()
 {
@@ -145,26 +148,14 @@ void Pager()
 
 }
 
-int findFrame()
+HIDDEN int findFrame()
 {
 	static int nextFrame = 0;
 	/* return ((next+1) % POOLSIZE); */
 	return ((nextFrame += 1) % POOLSIZE);
 }
 
-unsigned int getFrameAddr(unsigned int framePoolStart, int frameNum)
+HIDDEN unsigned int getFrameAddr(unsigned int framePoolStart, int frameNum)
 {
 	return framePoolStart + (frameNum * PAGESIZE);
-}
-
-int getHeadNum(int segment)
-{
-	if(segment == KUSEG2)
-	{
-		return KUSEG2HEAD;
-	}
-	else if(segment == KUSEG3)
-	{
-		return KUSEG3HEAD;
-	}
 }

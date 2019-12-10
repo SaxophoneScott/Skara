@@ -11,6 +11,9 @@ kupagetable_t			kuseg3PT;
 upcb_t					userProcArray[PROCCNT];
 frameswappoole_t		frameSwapPool[POOLSIZE];
 
+HIDDEN void uProcInit();
+HIDDEN void readTape(int procNum);
+
 void test() 
 {
 	int i;								/* loop control variable for various initializations */
@@ -104,7 +107,7 @@ void test()
 	SYSCALL(TERMINATEPROCESS, 0, 0, 0);
 }
 
-void uProcInit()
+HIDDEN void uProcInit()
 {
 	/* init kuseg2 page table 
 		3 sys 5s
@@ -156,7 +159,7 @@ void uProcInit()
 	LDST(initialState);
 }
 
-void readTape(int procNum) 
+HIDDEN void readTape(int procNum) 
 {
 	int i = 0;							/* counter for page number */
 	int moreToRead = TRUE;
@@ -188,7 +191,7 @@ void readTape(int procNum)
 		backingStore->d_command = SEEKCYL + (getCylinderNum(i) << DEVICECOMMANDSHIFT);
 		SYSCALL(WAITFORIO, diskLineNum, diskDeviceNum, zero);
 
-		backingStore->d_command = WRITEBLK + (getSectorNum(procNum) << DEVICECOMMANDSHIFT) + (KUSEG2HEAD << 2*DEVICECOMMANDSHIFT);
+		backingStore->d_command = WRITEBLK + (getSectorNum(procNum) << DEVICECOMMANDSHIFT) + (getHeadNum(KUSEG2) << 2*DEVICECOMMANDSHIFT);
 		backingStore->d_data0 = getTapeBufferAddr(tapeDeviceNum); /* getDiskBufferAddr(diskDeviceNum); */ /* starting addr from where to find stuff to write */
 		SYSCALL(WAITFORIO, diskLineNum, diskDeviceNum, zero);
 
@@ -212,7 +215,8 @@ void readTape(int procNum)
 	}
 }
 
-void allowInterrupts(int on) {
+void allowInterrupts(int on) 
+{
 	/* change later?? */
 	if(on)
 	{
@@ -254,4 +258,16 @@ int getCylinderNum(int pageNum)
 int getSectorNum(int procNum)
 {
 	return procNum-1;
+}
+
+int getHeadNum(int segment)
+{
+	if(segment == KUSEG2)
+	{
+		return KUSEG2HEAD;
+	}
+	else if(segment == KUSEG3)
+	{
+		return KUSEG3HEAD;
+	}
 }

@@ -66,6 +66,7 @@ void UserSyscallHandler()
 void UserProgramTrapHandler()
 {
 	/* bascially just do a sys 18 here */
+	SYSCALL(USERTERMINATE, 0, 0, 0);
 	
 }
 
@@ -128,8 +129,9 @@ HIDDEN void WriteToPrinter(int asid, state_PTR syscallOld, char* sourceAddr, int
 
 HIDDEN void GetTOD(state_PTR syscallOld)
 {
-	devregarea_t* busReg = (devregarea_t*) RAMBASEADDR;
-	syscallOld->s_v0 = busReg->todlo;
+	/* devregarea_t* busReg = (devregarea_t*) RAMBASEADDR;
+	syscallOld->s_v0 = busReg->todlo; *?
+	STCK(syscallOld->s_v0);
 	LDST(syscallOld);
 }
 
