@@ -14,6 +14,7 @@
 #define WRITEPRINTER	16
 #define GET_TOD			17
 #define TERMINATE		18
+#define GETTIME			6
 
 #define SEG0		0x00000000
 #define SEG1		0x40000000

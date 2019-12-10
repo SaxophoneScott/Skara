@@ -44,7 +44,7 @@ void Pager()
 	/* if it's seg 3 then it might be here already */
 	if(segment == KUSEG3)
 	{
-		pagetbe_t pageTableEntry = kuseg3PT.entries[page];
+		pagetbe_t pageTableEntry = kuseg3PT->entries[page];
 		unsigned int valid = (pageTableEntry.entryLo & VALIDMASK) >> VALIDSHIFT;
 		/* if the page is already there, then our job is done, so let's quit */
 		if(valid)
@@ -55,9 +55,9 @@ void Pager()
 	}
 
 	/* the page ain't there, so we gotta problem to fix */
-	frame = findFrame();
 	int deviceIndex;
 	device_t* backingStore;
+	frame = findFrame();
 
 	/* uh oh the frame is occupied... there can only be one of us, so time to give them the boot */
 	if(frameSwapPool[frame].ASID != UNOCCUPIEDFRAME)
@@ -69,7 +69,7 @@ void Pager()
 		{
 			/* turn the valid bit off */
 			allowInterrupts(FALSE);
-			kuseg3PT.entries[pageToBoot].entryLo = kuseg3PT.entries[pageToBoot].entryLo ^ VALIDON;
+			kuseg3PT->entries[pageToBoot].entryLo = kuseg3PT->entries[pageToBoot].entryLo ^ VALIDON;
 			TLBCLR();
 			allowInterrupts(TRUE);
 		}
@@ -77,7 +77,7 @@ void Pager()
 		{
 			/* turn the valid bit off */
 			allowInterrupts(FALSE);
-			userProcArray[freeloader-1].kuseg2PT.entries[pageToBoot].entryLo = userProcArray[freeloader-1].kuseg2PT.entries[pageToBoot].entryLo ^ VALIDON;
+			userProcArray[freeloader-1].kuseg2PT->entries[pageToBoot].entryLo = userProcArray[freeloader-1].kuseg2PT->entries[pageToBoot].entryLo ^ VALIDON;
 			TLBCLR();
 			allowInterrupts(TRUE);
 		}
@@ -85,12 +85,12 @@ void Pager()
 		/* assume the page is dirty, so write it to backing store */
 		/* get mutex of disk0 */
 		deviceIndex = (DISKLINE - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + BACKINGSTORE;
-		SYSCALL(PASSEREN, &(deviceSema4s[deviceIndex]), 0, 0);
+		SYSCALL(PASSEREN, (int)&(deviceSema4s[deviceIndex]), 0, 0);
 
 		allowInterrupts(FALSE);
 		/* write to disk0 */
 		backingStore = (device_t*) (BASEDEVICEADDRESS + ((DISKLINE - INITIALDEVLINENUM) * DEVICETYPESIZE) + (BACKINGSTORE * DEVICESIZE));
-		backingStore->d_command = SEEKCYL + getCylinderNum(pageToBoot) << DEVICECOMMANDSHIFT;
+		backingStore->d_command = SEEKCYL + (getCylinderNum(pageToBoot) << DEVICECOMMANDSHIFT);
 		SYSCALL(WAITFORIO, DISKLINE, BACKINGSTORE, 0);
 
 		backingStore->d_command = WRITEBLK + (getSectorNum(freeloader) << DEVICECOMMANDSHIFT) + (getHeadNum(segToBoot) << 2*DEVICECOMMANDSHIFT);
@@ -99,13 +99,13 @@ void Pager()
 
 		allowInterrupts(TRUE);
 		/* release mutex of disk0 */
-		SYSCALL(VERHOGEN, &(deviceSema4s[deviceIndex]), 0, 0);	} /* done handling if it wasn't empty */
+		SYSCALL(VERHOGEN, (int)&(deviceSema4s[deviceIndex]), 0, 0);	} /* done handling if it wasn't empty */
 
 	/* read missing page into selected frame */
 
 	/* get mutex of disk0 */
 	deviceIndex = (DISKLINE - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + BACKINGSTORE;
-	SYSCALL(PASSEREN, &(deviceSema4s[deviceIndex]), 0, 0);
+	SYSCALL(PASSEREN, (int)&(deviceSema4s[deviceIndex]), 0, 0);
 
 	allowInterrupts(FALSE);
 	/* write to disk0 */
@@ -119,7 +119,7 @@ void Pager()
 
 	allowInterrupts(TRUE);
 	/* release mutex of disk0 */
-	SYSCALL(VERHOGEN, &(deviceSema4s[deviceIndex]), 0, 0);
+	SYSCALL(VERHOGEN, (int)&(deviceSema4s[deviceIndex]), 0, 0);
 
 	/* update swap pool */
 	frameSwapPool[frame].ASID = asid;
@@ -131,7 +131,7 @@ void Pager()
 	{
 		/* turn the valid bit on */
 		allowInterrupts(FALSE);
-		kuseg3PT.entries[page].entryLo = (frame << FRAMESHIFT) + ((kuseg3PT.entries[page].entryLo | VALIDON) & FRAMENUMMASK);
+		kuseg3PT->entries[page].entryLo = (frame << FRAMESHIFT) + ((kuseg3PT->entries[page].entryLo | VALIDON) & FRAMENUMMASK);
 		TLBCLR();
 		allowInterrupts(TRUE);
 	}
@@ -139,7 +139,7 @@ void Pager()
 	{
 		/* turn the valid bit off */
 		allowInterrupts(FALSE);
-		userProcArray[asid-1].kuseg2PT.entries[page].entryLo = (frame << FRAMESHIFT) + ((userProcArray[asid-1].kuseg2PT.entries[page].entryLo | VALIDON) & FRAMENUMMASK);
+		userProcArray[asid-1].kuseg2PT->entries[page].entryLo = (frame << FRAMESHIFT) + ((userProcArray[asid-1].kuseg2PT->entries[page].entryLo | VALIDON) & FRAMENUMMASK);
 		TLBCLR();
 		allowInterrupts(TRUE);
 	}

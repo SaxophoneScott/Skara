@@ -1,0 +1,90 @@
+{
+    "boot": {
+        "core-file": "kernel.core.umps",
+        "load-core-file": true
+    },
+    "bootstrap-rom": "/usr/local/share/umps2/coreboot.rom.umps",
+    "clock-rate": 1,
+    "devices": {
+        "disk0": {
+            "enabled": true,
+            "file": "/home/students/csci/schatzk/Skara/kaya/phase3/disk0.umps"
+        },
+        "disk1": {
+            "enabled": true,
+            "file": "/home/students/csci/schatzk/Skara/kaya/phase3/disk1.umps"
+        },
+        "tape0": {
+            "enabled": true,
+            "file": "/home/students/csci/schatzk/Skara/kaya/phase3/fibTape.umps"
+        },
+        "tape1": {
+            "enabled": true,
+            "file": "/home/students/csci/schatzk/Skara/kaya/phase3/fibTape.umps"
+        },
+        "tape2": {
+            "enabled": true,
+            "file": "/home/students/csci/schatzk/Skara/kaya/phase3/fibTape.umps"
+        },
+        "tape3": {
+            "enabled": true,
+            "file": "/home/students/csci/schatzk/Skara/kaya/phase3/fibTape.umps"
+        },
+        "tape4": {
+            "enabled": true,
+            "file": "/home/students/csci/schatzk/Skara/kaya/phase3/fibTape.umps"
+        },
+        "tape5": {
+            "enabled": true,
+            "file": "/home/students/csci/schatzk/Skara/kaya/phase3/fibTape.umps"
+        },
+        "tape6": {
+            "enabled": true,
+            "file": "/home/students/csci/schatzk/Skara/kaya/phase3/fibTape.umps"
+        },
+        "tape7": {
+            "enabled": true,
+            "file": "/home/students/csci/schatzk/Skara/kaya/phase3/fibTape.umps"
+        },
+        "terminal0": {
+            "enabled": true,
+            "file": "term0.umps"
+        },
+        "terminal1": {
+            "enabled": true,
+            "file": "/home/students/csci/schatzk/Skara/kaya/phase3/fib_t.aout.umps"
+        },
+        "terminal2": {
+            "enabled": true,
+            "file": "/home/students/csci/schatzk/Skara/kaya/phase3/fib_t.aout.umps"
+        },
+        "terminal3": {
+            "enabled": true,
+            "file": "/home/students/csci/schatzk/Skara/kaya/phase3/fib_t.aout.umps"
+        },
+        "terminal4": {
+            "enabled": true,
+            "file": "/home/students/csci/schatzk/Skara/kaya/phase3/fib_t.aout.umps"
+        },
+        "terminal5": {
+            "enabled": true,
+            "file": "/home/students/csci/schatzk/Skara/kaya/phase3/fib_t.aout.umps"
+        },
+        "terminal6": {
+            "enabled": true,
+            "file": "/home/students/csci/schatzk/Skara/kaya/phase3/fib_t.aout.umps"
+        },
+        "terminal7": {
+            "enabled": true,
+            "file": "/home/students/csci/schatzk/Skara/kaya/phase3/fib_t.aout.umps"
+        }
+    },
+    "execution-rom": "/usr/local/share/umps2/exec.rom.umps",
+    "num-processors": 1,
+    "num-ram-frames": 64,
+    "symbol-table": {
+        "asid": 64,
+        "file": "kernel.stab.umps"
+    },
+    "tlb-size": 16
+}

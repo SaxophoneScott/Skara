@@ -1,6 +1,8 @@
 
 #include "../h/const.h"
 #include "../h/types.h"
+#include "../e/initial.e"
+#include "../e/initProc.e"
 #include "../e/pager.e"
 #include "../e/sysSupport.e"
 #include "/usr/local/include/umps2/umps/libumps.e"
@@ -8,19 +10,23 @@
 /* phase 3 global variables */
 /* semaphores */
 int 					masterSema4;
-int 					swapmutex; 
-int 					deviceSema4s[DEVICECOUNT]; 
+int 					swapmutex;
+int 					deviceSema4s[DEVICECOUNT];
 /* structs */
-segtable_t 				segTable[PROCCNT];
-ospagetable_t			ksegosPT;
-kupagetable_t			kuseg3PT;
-upcb_t					userProcArray[PROCCNT];
-frameswappoole_t		frameSwapPool[POOLSIZE];
+struct segtable_t 				segTable[PROCCNT];
+ospagetable_t*			ksegosPT;
+kupagetable_t*			kuseg3PT;
+struct upcb_t					userProcArray[PROCCNT];
+struct frameswappoole_t		frameSwapPool[POOLSIZE];
 
 HIDDEN void uProcInit();
 HIDDEN void readTape(int procNum);
 
-void test() 
+HIDDEN int debug(int a, int b, int c, int d);
+
+HIDDEN int debug(int a, int b, int c, int d){return a;}
+
+void test()
 {
 	int i;								/* loop control variable for various initializations */
 	int n;								/* loop control variable for various initializations */
@@ -29,23 +35,27 @@ void test()
 	/* initializing all phase 3 globals */
 
 	/* ksegOS page table */
-	ksegosPT.header = MAXKSEGOS;
+	debug(MAGICNUM, MAGICNUMSHIFT, MAXKSEGOS, &(ksegosPT->header));
+	ksegosPT->header = (MAGICNUM << MAGICNUMSHIFT) + MAXKSEGOS;
+	debug(0,0,0,0);
+
 	for(i = 0; i < MAXKSEGOS; i++)
 	{
+		getHeadNum(2);
 		/* entryHi = 0x20000 + i (ASID is irrelephant) */
-		ksegosPT.entries[i].entryHi = KSEGOSSTART + i;
+		ksegosPT->entries[i].entryHi = (KSEGOSSTART + i) << PAGESHIFT;
 		/* entryLo = 0x20000 + i with dirty, valid, global */
-		ksegosPT.entries[i].entryLo = (KSEGOSSTART + i) | DIRTYON | VALIDON | GLOBALON;
+		ksegosPT->entries[i].entryLo = (KSEGOSSTART + i) | DIRTYON | VALIDON | GLOBALON;
 	}
 
 	/* init kuseg3 page table */
-	kuseg3PT.header = MAXKUSEG;
+	kuseg3PT->header = (MAGICNUM << MAGICNUMSHIFT) + MAXKUSEG;
 	for(i = 0; i < MAXKUSEG; i++)
 	{
 		/* entryHi = 0xC0000 + i */
-		kuseg3PT.entries[i].entryHi = KUSEG3START + i;
+		kuseg3PT->entries[i].entryHi = (KUSEG3START + i) << PAGESHIFT;
 		/* entryLo = dirty, global */
-		kuseg3PT.entries[i].entryLo = ALLOFF | DIRTYON | GLOBALON;
+		kuseg3PT->entries[i].entryLo = ALLOFF | DIRTYON | GLOBALON;
 	}
 
 	/* swap pool */
@@ -69,16 +79,16 @@ void test()
 	for(n = 1; n < PROCCNT+ 1; n++)
 	{
 		/* setup proc n's  kuseg2 page table */
-		userProcArray[n-1].kuseg2PT.header = MAXKUSEG;
+		userProcArray[n-1].kuseg2PT->header = (MAGICNUM << MAGICNUMSHIFT) + MAXKUSEG;
 		for(i = 0; i < MAXKUSEG; i++)
 		{
 			/* entryHi = 0x80000 + i with ASID n */
-			userProcArray[n-1].kuseg2PT.entries[i].entryHi = ((KUSEG2START + i) << PAGESHIFT) + (n << ASIDSHIFT);  /* should this be +i or +n??? */
+			userProcArray[n-1].kuseg2PT->entries[i].entryHi = ((KUSEG2START + i) << PAGESHIFT) + (n << ASIDSHIFT);  /* should this be +i or +n??? */
 			/* entryLo = no frame #, dirty, not valid, not global */
-			userProcArray[n-1].kuseg2PT.entries[i].entryLo = ALLOFF | DIRTYON;
+			userProcArray[n-1].kuseg2PT->entries[i].entryLo = ALLOFF | DIRTYON;
 		}
 		/* fix last entry's entryHi to be 0xBFFFF w/ ASID n */
-		userProcArray[PROCCNT-1].kuseg2PT.entryHi = (KUSEG2LAST << PAGESHIFT) + (n << ASIDSHIFT);
+		userProcArray[PROCCNT-1].kuseg2PT->entries[MAXKUSEG-1].entryHi = (KUSEG2LAST << PAGESHIFT) + (n << ASIDSHIFT);
 
 		/* setup appropriate 3 entries (for proc n) in global segment table */
 			/* ksegOS = global var table
@@ -102,12 +112,12 @@ void test()
 		initialState->s_status = ALLOFF | INTERRUPTSUNMASKED | INTERRUPTMASKON | TEBITON | INITVMOFF | KERNELON;
 
 		/* sys 1 */
-		SYSCALL(CREATEPROCESS, initialState, 0, 0);
+		SYSCALL(CREATEPROCESS, (int)initialState, 0, 0);
 	}
 
 	for(i = 0; i < PROCCNT; i++)
 	{
-		SYSCALL(PASSEREN, (int)&masterSema4, 0, 0);	
+		SYSCALL(PASSEREN, (int)&masterSema4, 0, 0);
 	}
 
 	SYSCALL(TERMINATEPROCESS, 0, 0, 0);
@@ -115,7 +125,7 @@ void test()
 
 HIDDEN void uProcInit()
 {
-	/* init kuseg2 page table 
+	/* init kuseg2 page table
 		3 sys 5s
 		read code from tape to backing store
 		LDST */
@@ -133,27 +143,27 @@ HIDDEN void uProcInit()
 	userProcArray[asid-1].newAreas[TLBEXCEPTION]->s_asid = asid;
 	userProcArray[asid-1].newAreas[TLBEXCEPTION]->s_sp = getStackPageAddr(asid, TLBEXCEPTION);
 	userProcArray[asid-1].newAreas[TLBEXCEPTION]->s_pc = (memaddr) Pager;
-	userProcArray[asid-1].newAreas[TLBEXCEPTION]->t_9 = (memaddr) Pager;
+	userProcArray[asid-1].newAreas[TLBEXCEPTION]->s_t9 = (memaddr) Pager;
 	userProcArray[asid-1].newAreas[TLBEXCEPTION]->s_status = newStateStatus;
 	/* program trap */
 	userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION]->s_asid = asid;
 	userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION]->s_sp = getStackPageAddr(asid, PROGRAMTRAPEXCEPTION);
 	userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION]->s_pc = (memaddr) UserProgramTrapHandler;
-	userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION]->t_9 = (memaddr) UserProgramTrapHandler;
+	userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION]->s_t9 = (memaddr) UserProgramTrapHandler;
 	userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION]->s_status = newStateStatus;
 	/* syscall */
 	userProcArray[asid-1].newAreas[SYSCALLEXCEPTION]->s_asid = asid;
 	userProcArray[asid-1].newAreas[SYSCALLEXCEPTION]->s_sp = getStackPageAddr(asid, SYSCALLEXCEPTION);
 	userProcArray[asid-1].newAreas[SYSCALLEXCEPTION]->s_pc = (memaddr) UserSyscallHandler;
-	userProcArray[asid-1].newAreas[SYSCALLEXCEPTION]->t_9 = (memaddr) UserSyscallHandler;
+	userProcArray[asid-1].newAreas[SYSCALLEXCEPTION]->s_t9 = (memaddr) UserSyscallHandler;
 	userProcArray[asid-1].newAreas[SYSCALLEXCEPTION]->s_status = newStateStatus;
 
 	/* 3 SYS5s */
-	SYSCALL(EXCEPTIONSTATEVEC, TLBEXCEPTION, userProcArray[asid-1].oldAreas[TLBEXCEPTION], userProcArray[asid-1].newAreas[TLBEXCEPTION]);
-	SYSCALL(EXCEPTIONSTATEVEC, PROGRAMTRAPEXCEPTION, userProcArray[asid-1].oldAreas[PROGRAMTRAPEXCEPTION], userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION]);
-	SYSCALL(EXCEPTIONSTATEVEC, SYSCALLEXCEPTION, userProcArray[asid-1].oldAreas[SYSCALLEXCEPTION], userProcArray[asid-1].newAreas[SYSCALLEXCEPTION]);
+	SYSCALL(EXCEPTIONSTATEVEC, TLBEXCEPTION, (int)userProcArray[asid-1].oldAreas[TLBEXCEPTION], (int)userProcArray[asid-1].newAreas[TLBEXCEPTION]);
+	SYSCALL(EXCEPTIONSTATEVEC, PROGRAMTRAPEXCEPTION, (int)userProcArray[asid-1].oldAreas[PROGRAMTRAPEXCEPTION], (int)userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION]);
+	SYSCALL(EXCEPTIONSTATEVEC, SYSCALLEXCEPTION, (int)userProcArray[asid-1].oldAreas[SYSCALLEXCEPTION], (int)userProcArray[asid-1].newAreas[SYSCALLEXCEPTION]);
 
-	readTape(asid)
+	readTape(asid);
 
 	/* set up user process state */
 	initialState->s_asid = asid;
@@ -165,7 +175,7 @@ HIDDEN void uProcInit()
 	LDST(initialState);
 }
 
-HIDDEN void readTape(int procNum) 
+HIDDEN void readTape(int procNum)
 {
 	int i = 0;							/* counter for page number */
 	int moreToRead = TRUE;
@@ -180,17 +190,17 @@ HIDDEN void readTape(int procNum)
 	tape->d_data0 = getTapeBufferAddr(tapeDeviceNum); /* put starting address of where we wanna put the tape data */
 	tapeStatus = SYSCALL(WAITFORIO, TAPELINE, tapeDeviceNum, zero);
 	allowInterrupts(TRUE);
-	
-	while(tapeStatus == READY && moreToRead) 
+
+	while(tapeStatus == READY && moreToRead)
 	{
 		device_t* backingStore;
 		/* get mutex of disk0 */
-		int devIndex = (diskLineNum - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + BACKINGSTORE;
-		SYSCALL(PASSEREN, &(deviceSema4s[devIndex]), zero, zero);
+		int devIndex = (DISKLINE - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + BACKINGSTORE;
+		SYSCALL(PASSEREN, (int)&(deviceSema4s[devIndex]), zero, zero);
 
 		allowInterrupts(FALSE);
 		/* write to disk0 */
-		backingStore = (device_t*) (BASEDEVICEADDRESS + ((diskLineNum - INITIALDEVLINENUM) * DEVICETYPESIZE) + (BACKINGSTORE * DEVICESIZE));
+		backingStore = (device_t*) (BASEDEVICEADDRESS + ((DISKLINE - INITIALDEVLINENUM) * DEVICETYPESIZE) + (BACKINGSTORE * DEVICESIZE));
 		backingStore->d_command = SEEKCYL + (getCylinderNum(i) << DEVICECOMMANDSHIFT);
 		SYSCALL(WAITFORIO, DISKLINE, BACKINGSTORE, zero);
 
@@ -200,7 +210,7 @@ HIDDEN void readTape(int procNum)
 
 		allowInterrupts(TRUE);
 		/* release mutex of disk0 */
-		SYSCALL(VERHOGEN, &(deviceSema4s[devIndex]), zero, zero);
+		SYSCALL(VERHOGEN, (int)&(deviceSema4s[devIndex]), zero, zero);
 
 		moreToRead = (tape->d_data1 == EOB);
 		i++;
@@ -218,16 +228,16 @@ HIDDEN void readTape(int procNum)
 	}
 }
 
-void allowInterrupts(int on) 
+void allowInterrupts(int on)
 {
 	/* change later?? */
 	if(on)
 	{
-		currentProcess->p_s->s_status = currentProcess->p_s->s_status | ENABLEINTERRUPTS;
+		currentProcess->p_s.s_status = currentProcess->p_s.s_status | ENABLEINTERRUPTS;
 	}
 	else
 	{
-		currentProcess->p_s->s_status = currentProcess->p_s->s_status & DISABLEINTERRUPTS;
+		currentProcess->p_s.s_status = currentProcess->p_s.s_status & DISABLEINTERRUPTS;
 	}
 }
 

@@ -176,10 +176,11 @@ and devince number in interruping devices bit map */
 #define SUSPENDTIME 	420420
 
 /* phase 3 things */
+#define MAGICNUM			0x2A
 #define LEGALADDRSTART			0x80000000
 #define PROCCNT				8
 #define MAXKUSEG			32
-#define MAXKSEGOS			MAXKUSEG * 2
+#define MAXKSEGOS			0x40 /* MAXKUSEG * 2 */
 #define POOLSIZE			PROCCNT * 2  /* change this */
 #define KSEGOSSTART			0x20000
 #define KUSEG2START			0x80000
@@ -192,6 +193,7 @@ and devince number in interruping devices bit map */
 #define UNOCCUPIEDFRAME			-1
 #define MUTEXINIT			1
 #define SYNCINIT			0
+#define MAGICNUMSHIFT			24
 #define PAGESHIFT			12
 #define FRAMESHIFT			12
 #define ASIDSHIFT			6

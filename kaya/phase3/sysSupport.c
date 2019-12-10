@@ -29,9 +29,9 @@ void UserSyscallHandler()
 	unsigned int l_a1 = syscallOld -> s_a1;
 	unsigned int l_a2 = syscallOld -> s_a2;
 	unsigned int l_a3 = syscallOld -> s_a3;
-	
+
 	/* determine which syscall from a0 and handle it */
-	switch(l_a0){ 
+	switch(l_a0){
 		/* SYS 9 */
 		case READFROMTERMINAL:
 			/* a1: virtual address to place data read */
@@ -73,7 +73,7 @@ void UserProgramTrapHandler()
 {
 	/* bascially just do a sys 18 here */
 	SYSCALL(USERTERMINATE, 0, 0, 0);
-	
+
 }
 
 HIDDEN void ReadFromTerminal(int asid, state_PTR syscallOld, char* destAddr){}
@@ -100,7 +100,7 @@ HIDDEN void WriteToTerminal(int asid, state_PTR syscallOld, char* sourceAddr, in
 	deviceNum = asid-1;
 	deviceAddr = (device_t*) (BASEDEVICEADDRESS + ((TERMINALLINE - INITIALDEVLINENUM) * DEVICETYPESIZE) + (deviceNum * DEVICESIZE));
 	/* devregtr status; */
-	
+
 	/* SYSCALL(PASSERN, (int)&term_mut, 0, 0); */			/* P(term_mut) */
 	deviceIndex = (TERMINALLINE - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + deviceNum;
 	SYSCALL(PASSEREN, (int)&deviceSema4s[deviceIndex], 0, 0);
@@ -119,7 +119,7 @@ HIDDEN void WriteToTerminal(int asid, state_PTR syscallOld, char* sourceAddr, in
 			LDST(syscallOld);
 		}
 		i++;
-		s++;	
+		s++;
 	}
 	SYSCALL(VERHOGEN, (int)&deviceSema4s[deviceIndex], 0, 0);				/* V(term_mut) */
 	syscallOld->s_v0 = i;
@@ -148,7 +148,7 @@ HIDDEN void UserTerminate(int asid, state_PTR syscallOld)
 		SYSCALL(VERHOGEN, (int)&userProcArray[asid-1].sema4, 0, 0);
 	}
 	/* V the master sema4 */
-	SYSCALL(VERHOGEN, (int)&masterSem4, 0, 0);
+	SYSCALL(VERHOGEN, (int)&masterSema4, 0, 0);
 	/* terminate */
 	SYSCALL(TERMINATEPROCESS, 0, 0, 0);
 }

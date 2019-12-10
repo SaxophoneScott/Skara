@@ -27,6 +27,12 @@ disk0.umps:
 disk1.umps:
 	$(UDEV) -d disk1.umps
 
+strConcatTape.umps: strConcat_t.aout.umps
+	$(UDEV) -t strConcatTape.umps strConcat_t.aout.umps
+
+drawTape.umps: draw_t.aout.umps
+	$(UDEV) -t drawTape.umps draw_t.aout.umps
+
 readTape.umps: read_t.aout.umps
 	$(UDEV) -t readTape.umps read_t.aout.umps
 
@@ -50,6 +56,18 @@ pvBTape.umps: pvB_t.aout.umps
 
 printerTape.umps: printer_t.aout.umps
 	$(UDEV) -t printerTape.umps printer_t.aout.umps
+
+strConcat_t.aout.umps: strConcat_t
+	$(EF) -a strConcat_t
+
+strConcat_t: print.o readTest.o $(LIBDIR)/crti.o
+	$(LD) $(LDAOUTFLAGS) $(LIBDIR)/crti.o print.o readTest.o $(LIBDIR)/libumps.o -o strConcat_t
+
+draw_t.aout.umps: draw_t
+	$(EF) -a draw_t
+
+draw_t: print.o readTest.o $(LIBDIR)/crti.o
+	$(LD) $(LDAOUTFLAGS) $(LIBDIR)/crti.o print.o readTest.o $(LIBDIR)/libumps.o -o draw_t
 
 read_t.aout.umps: read_t
 	$(EF) -a read_t
