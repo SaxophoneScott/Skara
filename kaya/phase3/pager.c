@@ -95,31 +95,31 @@ void Pager()
 
 		backingStore->d_command = WRITEBLK + (getSectorNum(freeloader) << DEVICECOMMANDSHIFT) + (getHeadNum(segToBoot) << 2*DEVICECOMMANDSHIFT);
 		backingStore->d_data0 = getFrameAddr(framePoolStart, frame); /* starting addr from where to find stuff to write */
-		SYSCALL(WAITFORIO, diskLineNum, diskDeviceNum, zero);
+		SYSCALL(WAITFORIO, DISKLINE, BACKINGSTORE, 0);
 
 		allowInterrupts(TRUE);
 		/* release mutex of disk0 */
-		SYSCALL(VERHOGEN, &(deviceSema4s[devIndex]), 0, 0);	} /* done handling if it wasn't empty */
+		SYSCALL(VERHOGEN, &(deviceSema4s[deviceIndex]), 0, 0);	} /* done handling if it wasn't empty */
 
 	/* read missing page into selected frame */
 
 	/* get mutex of disk0 */
 	deviceIndex = (DISKLINE - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + BACKINGSTORE;
-	SYSCALL(PASSEREN, &(deviceSema4s[devIndex]), zero, zero);
+	SYSCALL(PASSEREN, &(deviceSema4s[deviceIndex]), 0, 0);
 
 	allowInterrupts(FALSE);
 	/* write to disk0 */
 	backingStore = (device_t*) (BASEDEVICEADDRESS + ((DISKLINE - INITIALDEVLINENUM) * DEVICETYPESIZE) + (BACKINGSTORE * DEVICESIZE));
-	backingStore->d_command = SEEKCYL + getCylinderNum(page) << DEVICECOMMANDSHIFT;
-	SYSCALL(WAITFORIO, diskLineNum, diskDeviceNum, zero);
+	backingStore->d_command = SEEKCYL + (getCylinderNum(page) << DEVICECOMMANDSHIFT);
+	SYSCALL(WAITFORIO, DISKLINE, BACKINGSTORE, 0);
 
 	backingStore->d_command = READBLK + (getSectorNum(asid) << DEVICECOMMANDSHIFT) + (getHeadNum(segment) << 2*DEVICECOMMANDSHIFT);
 	backingStore->d_data0 = getFrameAddr(framePoolStart, frame); /* starting addr to write the data retrieved */
-	SYSCALL(WAITFORIO, diskLineNum, diskDeviceNum, zero);
+	SYSCALL(WAITFORIO, DISKLINE, BACKINGSTORE, 0);
 
 	allowInterrupts(TRUE);
 	/* release mutex of disk0 */
-	SYSCALL(VERHOGEN, &(deviceSema4s[devIndex]), zero, zero);
+	SYSCALL(VERHOGEN, &(deviceSema4s[deviceIndex]), 0, 0);
 
 	/* update swap pool */
 	frameSwapPool[frame].ASID = asid;
@@ -131,7 +131,7 @@ void Pager()
 	{
 		/* turn the valid bit on */
 		allowInterrupts(FALSE);
-		kuseg3PT.entries[page].entryLo = (frame << FRAMESHIFT) + ((kuseg3PT.entries[pageToBoot].entryLo | VALIDON) & FRAMENUMMASK);
+		kuseg3PT.entries[page].entryLo = (frame << FRAMESHIFT) + ((kuseg3PT.entries[page].entryLo | VALIDON) & FRAMENUMMASK);
 		TLBCLR();
 		allowInterrupts(TRUE);
 	}
@@ -146,10 +146,10 @@ void Pager()
 	/* deal with TLB cache consistency */
 
 	/* release mutex */
-	SYSCALL(VERHOGEN, &swapmutex, 0, 0);
+	SYSCALL(VERHOGEN, (int)&swapmutex, 0, 0);
 
 	/* return control to process */
-	LDST(procArray[asid-1].oldAreas[TLBEXCEPTION]);
+	LDST(userProcArray[asid-1].oldAreas[TLBEXCEPTION]);
 
 }
 

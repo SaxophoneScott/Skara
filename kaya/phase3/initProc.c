@@ -170,36 +170,33 @@ HIDDEN void readTape(int procNum)
 	int i = 0;							/* counter for page number */
 	int moreToRead = TRUE;
 	unsigned int tapeStatus;
-	int tapeLineNum = TAPELINE;
 	int tapeDeviceNum = procNum-1;
 	int zero = 0;
-	device_t* tape = (device_t*) (BASEDEVICEADDRESS + ((tapeLineNum - INITIALDEVLINENUM) * DEVICETYPESIZE) + (tapeDeviceNum * DEVICESIZE));
+	device_t* tape = (device_t*) (BASEDEVICEADDRESS + ((TAPELINE - INITIALDEVLINENUM) * DEVICETYPESIZE) + (tapeDeviceNum * DEVICESIZE));
 
 	allowInterrupts(FALSE);
 	/* read the tape */
 	tape->d_command = READBLK;
 	tape->d_data0 = getTapeBufferAddr(tapeDeviceNum); /* put starting address of where we wanna put the tape data */
-	tapeStatus = SYSCALL(WAITFORIO, tapeLineNum, tapeDeviceNum, zero);
+	tapeStatus = SYSCALL(WAITFORIO, TAPELINE, tapeDeviceNum, zero);
 	allowInterrupts(TRUE);
 	
 	while(tapeStatus == READY && moreToRead) 
 	{
 		device_t* backingStore;
 		/* get mutex of disk0 */
-		int diskLineNum = DISKLINE;
-		int diskDeviceNum = BACKINGSTORE;
-		int devIndex = (diskLineNum - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + diskDeviceNum;
+		int devIndex = (diskLineNum - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + BACKINGSTORE;
 		SYSCALL(PASSEREN, &(deviceSema4s[devIndex]), zero, zero);
 
 		allowInterrupts(FALSE);
 		/* write to disk0 */
-		backingStore = (device_t*) (BASEDEVICEADDRESS + ((diskLineNum - INITIALDEVLINENUM) * DEVICETYPESIZE) + (diskDeviceNum * DEVICESIZE));
+		backingStore = (device_t*) (BASEDEVICEADDRESS + ((diskLineNum - INITIALDEVLINENUM) * DEVICETYPESIZE) + (BACKINGSTORE * DEVICESIZE));
 		backingStore->d_command = SEEKCYL + (getCylinderNum(i) << DEVICECOMMANDSHIFT);
-		SYSCALL(WAITFORIO, diskLineNum, diskDeviceNum, zero);
+		SYSCALL(WAITFORIO, DISKLINE, BACKINGSTORE, zero);
 
 		backingStore->d_command = WRITEBLK + (getSectorNum(procNum) << DEVICECOMMANDSHIFT) + (getHeadNum(KUSEG2) << 2*DEVICECOMMANDSHIFT);
-		backingStore->d_data0 = getTapeBufferAddr(tapeDeviceNum); /* getDiskBufferAddr(diskDeviceNum); */ /* starting addr from where to find stuff to write */
-		SYSCALL(WAITFORIO, diskLineNum, diskDeviceNum, zero);
+		backingStore->d_data0 = getTapeBufferAddr(tapeDeviceNum); /* getDiskBufferAddr(BACKINGSTORE); */ /* starting addr from where to find stuff to write */
+		SYSCALL(WAITFORIO, DISKLINE, BACKINGSTORE, zero);
 
 		allowInterrupts(TRUE);
 		/* release mutex of disk0 */
@@ -214,7 +211,7 @@ HIDDEN void readTape(int procNum)
 			/* read the tape */
 			tape->d_command = READBLK;
 			tape->d_data0 = getTapeBufferAddr(tapeDeviceNum); /* put starting address of where we wanna put the tape data */
-			tapeStatus = SYSCALL(WAITFORIO, lineNum, deviceNum, zero);
+			tapeStatus = SYSCALL(WAITFORIO, TAPELINE, tapeDeviceNum, zero);
 			allowInterrupts(TRUE);
 		}
 

@@ -1,3 +1,9 @@
+
+#include "../h/const.h"
+#include "../h/types.h"
+#include "../e/initProc.e"
+#include "/usr/local/include/umps2/umps/libumps.e"
+
 /* Private/Local Methods */
 HIDDEN void ReadFromTerminal(int asid, state_PTR syscallOld, char* destAddr);
 HIDDEN void WriteToTerminal(int asid, state_PTR syscallOld, char* sourceAddr, int length);

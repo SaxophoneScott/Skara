@@ -19,7 +19,7 @@ extern segtable_t 				segTable[PROCCNT];
 extern ospagetable_t			ksegosPT;
 extern kupagetable_t			kuseg3PT;
 extern upcb_t					userProcArray[PROCCNT];
-extern frameswappoole_t		frameSwapPool[POOLSIZE];
+extern frameswappoole_t 		frameSwapPool[POOLSIZE];
 
 extern void main();
 extern void allowInterrupts(int on);
