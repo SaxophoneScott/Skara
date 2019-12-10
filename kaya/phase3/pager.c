@@ -1,3 +1,9 @@
+
+#include "../h/const.h"
+#include "../h/types.h"
+#include "../e/initProc.e"
+#include "/usr/local/include/umps2/umps/libumps.e"
+
 /* int nextFrame = 0; */
 HIDDEN int findFrame();
 HIDDEN unsigned int getFrameAddr(unsigned int framePoolStart, int frameNum);

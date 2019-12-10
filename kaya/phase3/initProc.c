@@ -1,4 +1,10 @@
 
+#include "../h/const.h"
+#include "../h/types.h"
+#include "../e/pager.e"
+#include "../e/sysSupport.e"
+#include "/usr/local/include/umps2/umps/libumps.e"
+
 /* phase 3 global variables */
 /* semaphores */
 int 					masterSema4;
