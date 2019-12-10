@@ -147,7 +147,7 @@ typedef struct frameswappoole_t{
 				segNum,
 				pageNum;
 	pagetbe_t*		pagetbentry; 	/* optional */
-} swappoole_t;
+} frameswappoole_t;
 
 typedef struct upcb_t{
 	int 			sema4;

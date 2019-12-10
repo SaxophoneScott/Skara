@@ -39,18 +39,18 @@ void Pager()
 	page = (userProcArray[asid-1].oldAreas[TLBEXCEPTION]->s_HI & PAGEMASK) >> PAGESHIFT;
 
 	/* gain mutex of swap pool */
-	SYSCALL(PASSEREN, &swapmutex, 0, 0);
+	SYSCALL(PASSEREN, (int)&swapmutex, 0, 0);
 
 	/* if it's seg 3 then it might be here already */
 	if(segment == KUSEG3)
 	{
 		pagetbe_t pageTableEntry = kuseg3PT.entries[page];
-		valid = (pageTableEntry.entryLo & VALIDMASK) >> VALIDSHIFT;
+		unsigned int valid = (pageTableEntry.entryLo & VALIDMASK) >> VALIDSHIFT;
 		/* if the page is already there, then our job is done, so let's quit */
 		if(valid)
 		{
-			SYSCALL(VERHOGEN, &swapmutex, 0, 0);
-			LDST(procArray[asid-1].oldAreas[TLBEXCEPTION]);
+			SYSCALL(VERHOGEN, (int)&swapmutex, 0, 0);
+			LDST(userProcArray[asid-1].oldAreas[TLBEXCEPTION]);
 		}
 	}
 
@@ -84,14 +84,14 @@ void Pager()
 
 		/* assume the page is dirty, so write it to backing store */
 		/* get mutex of disk0 */
-		devIndex = (DISKLINE - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + BACKINGSTORE;
-		SYSCALL(PASSEREN, &(deviceSema4s[devIndex]), zero, zero);
+		deviceIndex = (DISKLINE - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + BACKINGSTORE;
+		SYSCALL(PASSEREN, &(deviceSema4s[deviceIndex]), 0, 0);
 
 		allowInterrupts(FALSE);
 		/* write to disk0 */
 		backingStore = (device_t*) (BASEDEVICEADDRESS + ((DISKLINE - INITIALDEVLINENUM) * DEVICETYPESIZE) + (BACKINGSTORE * DEVICESIZE));
 		backingStore->d_command = SEEKCYL + getCylinderNum(pageToBoot) << DEVICECOMMANDSHIFT;
-		SYSCALL(WAITFORIO, diskLineNum, diskDeviceNum, zero);
+		SYSCALL(WAITFORIO, DISKLINE, BACKINGSTORE, 0);
 
 		backingStore->d_command = WRITEBLK + (getSectorNum(freeloader) << DEVICECOMMANDSHIFT) + (getHeadNum(segToBoot) << 2*DEVICECOMMANDSHIFT);
 		backingStore->d_data0 = getFrameAddr(framePoolStart, frame); /* starting addr from where to find stuff to write */
