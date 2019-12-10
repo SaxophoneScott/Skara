@@ -267,6 +267,7 @@ with 100 milliseconds.
 		(*sema4)++;
 		p = removeBlocked(sema4);
 		insertProcQ(&readyQ, p);
+		softBlockCount--;
 	}
 	(*sema4) = 0;
 	LDIT(INTERVALTIME);

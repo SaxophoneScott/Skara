@@ -125,34 +125,34 @@ typedef struct pagetbe_t{
 /* kuseg2/3 page table */
 typedef struct kupagetable_t{
 	unsigned int 	header;
-	pagetbe_t 		entries[MAXKUSEG];	
-} pagetable_t;
+	pagetbe_t 		entries[MAXKUSEG];
+} kupagetable_t;
 
 /* ksegos3 page table */
 typedef struct ospagetable_t{
-	unsigned int 	header;
-	pagetbe_t 		entries[MAXKSEGOS];	
-} pagetable_t;
+	unsigned int 		header;
+	pagetbe_t 		entries[MAXKSEGOS];
+} ospagetable_t;
 
 /* segment table */
 typedef struct segtable_t{
-	pagetable_t		ksegos,
-					kuseg2;
-					kuseg3;	
+	ospagetable_t			ksegos;
+	kupagetable_t			kuseg2,
+					kuseg3;
 } segtable_t;
 
 /* swap pool entry */
 typedef struct frameswappoole_t{
 	int 			ASID,
-					segNum,
-					pageNum;
+				segNum,
+				pageNum;
 	pagetbe_t*		pagetbentry; 	/* optional */
 } swappoole_t;
 
 typedef struct upcb_t{
-	int 			sema4,
-	kupagetable_t	kuseg2PT;
-	unsigned int 	backingStoreAddr;
+	int 			sema4;
+	kupagetable_t		kuseg2PT;
+	unsigned int 		backingStoreAddr;
 	state_t*		oldAreas[TRAPTYPES];	/* [TLB, programtrap, syscall] */
 	state_t*		newAreas[TRAPTYPES];	/* [TLB, programtrap, syscall] */
 

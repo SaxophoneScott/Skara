@@ -417,6 +417,7 @@ param: syscallOld - the state of the calling process
 */
 {
 	int* semaphore = &(semaphoreArray[ITSEMINDEX]); 				/* pseudo-clock timer's semaddr */
+	softBlockCount++;
 	Passeren(syscallOld, semaphore);								/* P the sema4 and block the process */
 }
 
@@ -450,6 +451,7 @@ param: termRead - true if it is a terminal receive, false otherwise
 	/* case: block the process until it gets IO */								
 	if(*(semaddr) < 0)
 	{
+		softBlockCount++;
 		BlockHelperFunction(syscallOld, semaddr, currentProcess);
 	}
 	/* case: ERROR ERROR */
@@ -474,7 +476,7 @@ param: process - the process to block
 	IncrementProcessTime(process);									/* update accumulated cpu time used */
 	CopyState(&(process->p_s), syscallOld);							/* update the process's state in case of any changes */
 	insertBlocked(semaddr, process);
-	softBlockCount++;
+	/* softBlockCount++; */
 	currentProcess = NULL;
 	Scheduler();													/* schedule a new process to run */
 }

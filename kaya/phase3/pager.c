@@ -13,7 +13,7 @@ void Pager()
 {
 	devregarea_t* busReg;
 	unsigned int framePoolStart;
-	int asid; 
+	int asid;
 	unsigned int cause;
 	int excCode;
 	int segment;
@@ -23,10 +23,10 @@ void Pager()
 	busReg = (devregarea_t*) RAMBASEADDR;
 	framePoolStart = (busReg->rambase + busReg->ramsize) - ((POOLSIZE + 3) * PAGESIZE);
 	/* who am i? */
-	asid = (getENTRYHI() && ASIDMASK) >> ASIDSHIFT;	
+	asid = (getENTRYHI() && ASIDMASK) >> ASIDSHIFT;
 
 	/* why am i here? */
-	cause = procArray[asid-1].oldAreas[TLBEXCEPTION]->s_cause;
+	cause = userProcArray[asid-1].oldAreas[TLBEXCEPTION]->s_cause;
 	excCode = cause & EXCCODEMASK >> EXCCODESHIFT;
 	/* if it's not an invalid load or store, then just kill it. sorry :( */
 	if(excCode != TLBINVALIDLOAD && excCode != TLBINVALIDSTORE)
@@ -35,8 +35,8 @@ void Pager()
 	}
 
 	/* get page num and segment num */
-	segment = (procArray[asid-1].oldAreas[TLBEXCEPTION]->s_HI & SEGMASK) >> SEGSHIFT;
-	page = (procArray[asid-1].oldAreas[TLBEXCEPTION]->s_HI & PAGEMASK) >> PAGESHIFT;
+	segment = (userProcArray[asid-1].oldAreas[TLBEXCEPTION]->s_HI & SEGMASK) >> SEGSHIFT;
+	page = (userProcArray[asid-1].oldAreas[TLBEXCEPTION]->s_HI & PAGEMASK) >> PAGESHIFT;
 
 	/* gain mutex of swap pool */
 	SYSCALL(PASSEREN, &swapmutex, 0, 0);
@@ -99,13 +99,12 @@ void Pager()
 
 		allowInterrupts(TRUE);
 		/* release mutex of disk0 */
-		SYSCALL(VERHOGEN, &(deviceSema4s[devIndex]), zero, zero);		
-	} /* done handling if it wasn't empty */
+		SYSCALL(VERHOGEN, &(deviceSema4s[devIndex]), 0, 0);	} /* done handling if it wasn't empty */
 
 	/* read missing page into selected frame */
-	
+
 	/* get mutex of disk0 */
-	devIndex = (DISKLINE - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + BACKINGSTORE;
+	deviceIndex = (DISKLINE - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + BACKINGSTORE;
 	SYSCALL(PASSEREN, &(deviceSema4s[devIndex]), zero, zero);
 
 	allowInterrupts(FALSE);
