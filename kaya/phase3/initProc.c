@@ -35,7 +35,7 @@ void test()
 		/* entryHi = 0x20000 + i (ASID is irrelephant) */
 		ksegosPT.entries[i].entryHi = KSEGOSSTART + i;
 		/* entryLo = 0x20000 + i with dirty, valid, global */
-		ksegosPT.entries[i].entryLo = KSEGOSSTART + i | DIRTYON | VALIDON | GLOBALON;
+		ksegosPT.entries[i].entryLo = (KSEGOSSTART + i) | DIRTYON | VALIDON | GLOBALON;
 	}
 
 	/* init kuseg3 page table */
@@ -43,7 +43,7 @@ void test()
 	for(i = 0; i < MAXKUSEG; i++)
 	{
 		/* entryHi = 0xC0000 + i */
-		kuseg3PT.entries[i].entryHI = KUSEG3START + i;
+		kuseg3PT.entries[i].entryHi = KUSEG3START + i;
 		/* entryLo = dirty, global */
 		kuseg3PT.entries[i].entryLo = ALLOFF | DIRTYON | GLOBALON;
 	}
@@ -52,13 +52,13 @@ void test()
 	for(i = 0; i < POOLSIZE; i++)
 	{
 		/* ASID = -1 to indicate unoccupied */
-		frameSwapPool.ASID = UNOCCUPIEDFRAME;
+		frameSwapPool[i].ASID = UNOCCUPIEDFRAME;
 	}
 
 	swapmutex = MUTEXINIT;
 
 	/* device sema4s */
-	for(i = 0, i < DEVICECOUNT; i++)
+	for(i = 0; i < DEVICECOUNT; i++)
 	{
 		/* = 1 (mutex) */
 		deviceSema4s[i] = MUTEXINIT;
