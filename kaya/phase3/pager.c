@@ -26,7 +26,7 @@ void Pager()
 	asid = (getENTRYHI() && ASIDMASK) >> ASIDSHIFT;
 
 	/* why am i here? */
-	cause = userProcArray[asid-1].oldAreas[TLBEXCEPTION]->s_cause;
+	cause = userProcArray[asid-1].oldAreas[TLBEXCEPTION].s_cause;
 	excCode = cause & EXCCODEMASK >> EXCCODESHIFT;
 	/* if it's not an invalid load or store, then just kill it. sorry :( */
 	if(excCode != TLBINVALIDLOAD && excCode != TLBINVALIDSTORE)
@@ -35,8 +35,8 @@ void Pager()
 	}
 
 	/* get page num and segment num */
-	segment = (userProcArray[asid-1].oldAreas[TLBEXCEPTION]->s_HI & SEGMASK) >> SEGSHIFT;
-	page = (userProcArray[asid-1].oldAreas[TLBEXCEPTION]->s_HI & PAGEMASK) >> PAGESHIFT;
+	segment = (userProcArray[asid-1].oldAreas[TLBEXCEPTION].s_HI & SEGMASK) >> SEGSHIFT;
+	page = (userProcArray[asid-1].oldAreas[TLBEXCEPTION].s_HI & PAGEMASK) >> PAGESHIFT;
 
 	/* gain mutex of swap pool */
 	SYSCALL(PASSEREN, (int)&swapmutex, 0, 0);
@@ -50,7 +50,7 @@ void Pager()
 		if(valid)
 		{
 			SYSCALL(VERHOGEN, (int)&swapmutex, 0, 0);
-			LDST(userProcArray[asid-1].oldAreas[TLBEXCEPTION]);
+			LDST(&(userProcArray[asid-1].oldAreas[TLBEXCEPTION]));
 		}
 	}
 
@@ -149,7 +149,7 @@ void Pager()
 	SYSCALL(VERHOGEN, (int)&swapmutex, 0, 0);
 
 	/* return control to process */
-	LDST(userProcArray[asid-1].oldAreas[TLBEXCEPTION]);
+	LDST(&(userProcArray[asid-1].oldAreas[TLBEXCEPTION]));
 
 }
 

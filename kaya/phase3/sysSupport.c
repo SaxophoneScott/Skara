@@ -21,7 +21,7 @@ void UserSyscallHandler()
 	/* who am I? */
 	int asid = (getENTRYHI() && ASIDMASK) >> ASIDSHIFT;
 
-	state_PTR syscallOld = userProcArray[asid-1].oldAreas[SYSCALLEXCEPTION];	/* state of the process issuing a syscall */
+	state_PTR syscallOld = &(userProcArray[asid-1].oldAreas[SYSCALLEXCEPTION]);	/* state of the process issuing a syscall */
 	syscallOld->s_pc += WORDLEN;									/* increment the pc, so the process will move on when it starts again */
 
 	/* the syscall parameters/a registers */
