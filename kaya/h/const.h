@@ -178,7 +178,7 @@ and devince number in interruping devices bit map */
 /* phase 3 things */
 #define MAGICNUM			0x2A
 #define LEGALADDRSTART			0x80000000
-#define PROCCNT				8
+#define PROCCNT				1
 #define MAXKUSEG			32
 #define MAXKSEGOS			0x40 /* MAXKUSEG * 2 */
 #define POOLSIZE			PROCCNT * 2  /* change this */

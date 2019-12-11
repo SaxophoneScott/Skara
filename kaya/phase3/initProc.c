@@ -126,24 +126,18 @@ HIDDEN void uProcInit()
 		3 sys 5s
 		read code from tape to backing store
 		LDST */
-	debug(0,0,0,0);
 	int asid;
 	/* state_PTR tlbNewArea;
 	state_PTR progNewArea;
 	state_PTR sysNewArea; */
-	debug(0,0,0,0);
 	state_t initialState;
-	debug(0,0,0,0);
 	unsigned int newStateStatus = ALLOFF | INTERRUPTSUNMASKED | INTERRUPTMASKON | TEBITON | VMON | KERNELON;
 	/* who am i? */
-	debug(0,0,0,0);
 	asid = (getENTRYHI() && ASIDMASK) >> ASIDSHIFT;
 
-	debug(0,0,0,0);
 	/* set up 3 new areas for pass up or die */
 	/* TLB */
 	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_asid = asid;
-	debug(0,0,0,0);
 	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_sp = getStackPageAddr(asid, TLBEXCEPTION);
 	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_pc = (memaddr) Pager;
 	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_t9 = (memaddr) Pager;
@@ -256,7 +250,7 @@ unsigned int getDiskBufferAddr(int diskNum)
 
 unsigned int getStackPageAddr(int procNum, int exceptionType)
 {
-	return STACKPOOLSTART + (procNum-1 * UPROCSTACKSIZE * PAGESIZE) + (exceptionType * PAGESIZE) + PAGESIZE;
+	return STACKPOOLSTART + ((procNum-1) * UPROCSTACKSIZE * PAGESIZE) + (exceptionType * PAGESIZE) + PAGESIZE;
 }
 
 int getCylinderNum(int pageNum)
