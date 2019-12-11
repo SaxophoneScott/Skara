@@ -135,10 +135,14 @@ typedef struct ospagetable_t{
 } ospagetable_t;
 
 /* segment table */
-typedef struct segtable_t{
+typedef struct segtbe_t{
 	ospagetable_t*			ksegos;
 	kupagetable_t*			kuseg2;
 	kupagetable_t*			kuseg3;
+} segtbe_t;
+
+typedef struct segtable_t{
+	struct segtbe_t			entries[PROCCNT];
 } segtable_t;
 
 /* swap pool entry */

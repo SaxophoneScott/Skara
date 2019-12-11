@@ -176,6 +176,7 @@ and devince number in interruping devices bit map */
 #define SUSPENDTIME 	420420
 
 /* phase 3 things */
+#define SEGMENTTABLE		0x20000500
 #define MAGICNUM			0x2A
 #define LEGALADDRSTART			0x80000000
 #define PROCCNT				1

@@ -13,7 +13,7 @@ int 					masterSema4;
 int 					swapmutex;
 int 					deviceSema4s[DEVICECOUNT];
 /* structs */
-struct segtable_t 				segTable[PROCCNT];
+segtable_t* 			segTable;
 ospagetable_t			ksegosPT;
 kupagetable_t			kuseg3PT;
 struct upcb_t					userProcArray[PROCCNT];
@@ -33,6 +33,7 @@ void test()
 	state_t initialState;
 
 	/* initializing all phase 3 globals */
+	segTable = (memaddr) SEGMENTTABLE;
 
 	/* ksegOS page table */
 	ksegosPT.header = (MAGICNUM << MAGICNUMSHIFT) + MAXKSEGOS;
@@ -92,9 +93,9 @@ void test()
 			   kuseg2 = process's table we just set up
 			   kuseg3 = global var table
 			*/
-		segTable[n-1].ksegos = &ksegosPT;
-		segTable[n-1].kuseg2 = &(userProcArray[n-1].kuseg2PT);
-		segTable[n-1].kuseg3 = &kuseg3PT;
+		segTable->entries[n-1].ksegos = &ksegosPT;
+		segTable->entries[n-1].kuseg2 = &(userProcArray[n-1].kuseg2PT);
+		segTable->entries[n-1].kuseg3 = &kuseg3PT;
 
 		/* setup initial process state */
 			/* ASID = n
@@ -183,8 +184,8 @@ HIDDEN void readTape(int procNum)
 
 	allowInterrupts(FALSE);
 	/* read the tape */
-	tape->d_command = READBLK;
 	tape->d_data0 = getTapeBufferAddr(tapeDeviceNum); /* put starting address of where we wanna put the tape data */
+	tape->d_command = READBLK;
 	tapeStatus = SYSCALL(WAITFORIO, TAPELINE, tapeDeviceNum, zero);
 	allowInterrupts(TRUE);
 
@@ -201,8 +202,8 @@ HIDDEN void readTape(int procNum)
 		backingStore->d_command = SEEKCYL + (getCylinderNum(i) << DEVICECOMMANDSHIFT);
 		SYSCALL(WAITFORIO, DISKLINE, BACKINGSTORE, zero);
 
-		backingStore->d_command = WRITEBLK + (getSectorNum(procNum) << DEVICECOMMANDSHIFT) + (getHeadNum(KUSEG2) << 2*DEVICECOMMANDSHIFT);
 		backingStore->d_data0 = getTapeBufferAddr(tapeDeviceNum); /* getDiskBufferAddr(BACKINGSTORE); */ /* starting addr from where to find stuff to write */
+		backingStore->d_command = WRITEBLK + (getSectorNum(procNum) << DEVICECOMMANDSHIFT) + (getHeadNum(KUSEG2) << 2*DEVICECOMMANDSHIFT);
 		SYSCALL(WAITFORIO, DISKLINE, BACKINGSTORE, zero);
 
 		allowInterrupts(TRUE);
@@ -216,8 +217,8 @@ HIDDEN void readTape(int procNum)
 		{
 			allowInterrupts(FALSE);
 			/* read the tape */
-			tape->d_command = READBLK;
 			tape->d_data0 = getTapeBufferAddr(tapeDeviceNum); /* put starting address of where we wanna put the tape data */
+			tape->d_command = READBLK;
 			tapeStatus = SYSCALL(WAITFORIO, TAPELINE, tapeDeviceNum, zero);
 			allowInterrupts(TRUE);
 		}
@@ -227,14 +228,13 @@ HIDDEN void readTape(int procNum)
 
 void allowInterrupts(int on)
 {
-	/* change later?? */
 	if(on)
 	{
-		currentProcess->p_s.s_status = currentProcess->p_s.s_status | ENABLEINTERRUPTS;
+		setSTATUS(getSTATUS() | ENABLEINTERRUPTS);
 	}
 	else
 	{
-		currentProcess->p_s.s_status = currentProcess->p_s.s_status & DISABLEINTERRUPTS;
+		setSTATUS(getSTATUS() & DISABLEINTERRUPTS);
 	}
 }
 

@@ -93,8 +93,8 @@ void Pager()
 		backingStore->d_command = SEEKCYL + (getCylinderNum(pageToBoot) << DEVICECOMMANDSHIFT);
 		SYSCALL(WAITFORIO, DISKLINE, BACKINGSTORE, 0);
 
-		backingStore->d_command = WRITEBLK + (getSectorNum(freeloader) << DEVICECOMMANDSHIFT) + (getHeadNum(segToBoot) << 2*DEVICECOMMANDSHIFT);
 		backingStore->d_data0 = getFrameAddr(framePoolStart, frame); /* starting addr from where to find stuff to write */
+		backingStore->d_command = WRITEBLK + (getSectorNum(freeloader) << DEVICECOMMANDSHIFT) + (getHeadNum(segToBoot) << 2*DEVICECOMMANDSHIFT);
 		SYSCALL(WAITFORIO, DISKLINE, BACKINGSTORE, 0);
 
 		allowInterrupts(TRUE);
@@ -113,8 +113,8 @@ void Pager()
 	backingStore->d_command = SEEKCYL + (getCylinderNum(page) << DEVICECOMMANDSHIFT);
 	SYSCALL(WAITFORIO, DISKLINE, BACKINGSTORE, 0);
 
-	backingStore->d_command = READBLK + (getSectorNum(asid) << DEVICECOMMANDSHIFT) + (getHeadNum(segment) << 2*DEVICECOMMANDSHIFT);
 	backingStore->d_data0 = getFrameAddr(framePoolStart, frame); /* starting addr to write the data retrieved */
+	backingStore->d_command = READBLK + (getSectorNum(asid) << DEVICECOMMANDSHIFT) + (getHeadNum(segment) << 2*DEVICECOMMANDSHIFT);
 	SYSCALL(WAITFORIO, DISKLINE, BACKINGSTORE, 0);
 
 	allowInterrupts(TRUE);

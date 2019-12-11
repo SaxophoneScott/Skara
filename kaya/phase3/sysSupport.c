@@ -143,10 +143,10 @@ HIDDEN void GetTOD(state_PTR syscallOld)
 HIDDEN void UserTerminate(int asid, state_PTR syscallOld)
 {
 	/* release any mutex we have */
-	if(userProcArray[asid-1].sema4 != NULL)
+	/* if(userProcArray[asid-1].sema4 < 0)
 	{
 		SYSCALL(VERHOGEN, (int)&userProcArray[asid-1].sema4, 0, 0);
-	}
+	} */
 	/* V the master sema4 */
 	SYSCALL(VERHOGEN, (int)&masterSema4, 0, 0);
 	/* terminate */
