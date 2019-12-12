@@ -35,7 +35,8 @@
 /* values for controlling bits in the status register */
 #define ALLON					0xFFFFFFFF
 #define ALLOFF					0x00000000
-#define VMON					0x01000000
+#define VMONCURR				0x01000000
+#define VMONPREV				0x02000000
 #define INITVMOFF				0x00000000
 #define KERNELON				0x00000000
 #define KERNELOFF				0x00000008
@@ -189,8 +190,8 @@ and devince number in interruping devices bit map */
 #define	KUSEG3START			0xC0000
 #define KUSEG2LAST			0xBFFFF
 #define DIRTYON				0x00000400
-#define VALIDON				0x00000100
-#define GLOBALON			0x00000080
+#define VALIDON				0x00000200 /* 0x00000100 */
+#define GLOBALON			0x00000100 /* 0x00000080 */
 #define UNOCCUPIEDFRAME			-1
 #define MUTEXINIT			1
 #define SYNCINIT			0
@@ -210,8 +211,8 @@ and devince number in interruping devices bit map */
 #define DISKBUFFERSTART			TAPEBUFFERSTART + (NUMDEVICES * PAGESIZE)
 #define STACKPOOLSTART			DISKBUFFERSTART + (NUMDEVICES * PAGESIZE)
 
-#define ENABLEINTERRUPTS		0x00000004
-#define DISABLEINTERRUPTS		0xFFFFFFFB
+#define ENABLEINTERRUPTS		0x00000001 /* 0x00000004 */
+#define DISABLEINTERRUPTS		0xFFFFFFFE /* 0xFFFFFFFB */
 
 #define SEGMASK				0xC0000000
 #define PAGEMASK			0x3FFFF000

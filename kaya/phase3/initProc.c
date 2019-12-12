@@ -33,21 +33,22 @@ void test()
 	state_t initialState;
 
 	/* initializing all phase 3 globals */
-	segTable = (memaddr) SEGMENTTABLE;
+	segTable = (segtable_t*) SEGMENTTABLE;
 
 	/* ksegOS page table */
 	ksegosPT.header = (MAGICNUM << MAGICNUMSHIFT) + MAXKSEGOS;
-
+	debug((int)ksegosPT.header,0,0,0);
 	for(i = 0; i < MAXKSEGOS; i++)
 	{
 		/* entryHi = 0x20000 + i (ASID is irrelephant) */
 		ksegosPT.entries[i].entryHi = (KSEGOSSTART + i) << PAGESHIFT;
 		/* entryLo = 0x20000 + i with dirty, valid, global */
-		ksegosPT.entries[i].entryLo = (KSEGOSSTART + i) | DIRTYON | VALIDON | GLOBALON;
+		ksegosPT.entries[i].entryLo = ((KSEGOSSTART + i) << PAGESHIFT) | DIRTYON | VALIDON | GLOBALON;
 	}
 
 	/* init kuseg3 page table */
 	kuseg3PT.header = (MAGICNUM << MAGICNUMSHIFT) + MAXKUSEG;
+	debug((int)kuseg3PT.header,0,0,0);
 	for(i = 0; i < MAXKUSEG; i++)
 	{
 		/* entryHi = 0xC0000 + i */
@@ -78,15 +79,16 @@ void test()
 	{
 		/* setup proc n's  kuseg2 page table */
 		userProcArray[n-1].kuseg2PT.header = (MAGICNUM << MAGICNUMSHIFT) + MAXKUSEG;
+		debug((int)userProcArray[n-1].kuseg2PT.header,0,0,0);
 		for(i = 0; i < MAXKUSEG; i++)
 		{
 			/* entryHi = 0x80000 + i with ASID n */
-			userProcArray[n-1].kuseg2PT.entries[i].entryHi = ((KUSEG2START + i) << PAGESHIFT) + (n << ASIDSHIFT);  /* should this be +i or +n??? */
+			userProcArray[n-1].kuseg2PT.entries[i].entryHi = ((KUSEG2START + i) << PAGESHIFT) | (n << ASIDSHIFT);  /* should this be +i or +n??? */
 			/* entryLo = no frame #, dirty, not valid, not global */
 			userProcArray[n-1].kuseg2PT.entries[i].entryLo = ALLOFF | DIRTYON;
 		}
 		/* fix last entry's entryHi to be 0xBFFFF w/ ASID n */
-		userProcArray[PROCCNT-1].kuseg2PT.entries[MAXKUSEG-1].entryHi = (KUSEG2LAST << PAGESHIFT) + (n << ASIDSHIFT);
+		userProcArray[PROCCNT-1].kuseg2PT.entries[MAXKUSEG-1].entryHi = (KUSEG2LAST << PAGESHIFT) | (n << ASIDSHIFT);
 
 		/* setup appropriate 3 entries (for proc n) in global segment table */
 			/* ksegOS = global var table
@@ -97,13 +99,17 @@ void test()
 		segTable->entries[n-1].kuseg2 = &(userProcArray[n-1].kuseg2PT);
 		segTable->entries[n-1].kuseg3 = &kuseg3PT;
 
+		debug((int)segTable->entries[n-1].ksegos,0,0,0);
+		debug((int)segTable->entries[n-1].kuseg2,(int)&(segTable->entries[n-1].kuseg2->header),(int)&(segTable->entries[n-1].kuseg2->entries),0);
+		debug((int)segTable->entries[n-1].kuseg3,0,0,0);
+
 		/* setup initial process state */
 			/* ASID = n
 			   stack page = TBD
 			   pc = uProcInit method
 			   status = all interrupts enabled, PLT enabled, VM off, kernel mode on
 			*/
-		initialState.s_asid = n;
+		initialState.s_asid = n << ASIDSHIFT;
 		initialState.s_sp = (memaddr) getStackPageAddr(n, 0);		/* can use any of the process's stack pages for now */
 		initialState.s_pc = (memaddr) uProcInit;
 		initialState.s_t9 = (memaddr) uProcInit;
@@ -132,25 +138,25 @@ HIDDEN void uProcInit()
 	state_PTR progNewArea;
 	state_PTR sysNewArea; */
 	state_t initialState;
-	unsigned int newStateStatus = ALLOFF | INTERRUPTSUNMASKED | INTERRUPTMASKON | TEBITON | VMON | KERNELON;
+	unsigned int newStateStatus = ALLOFF | INTERRUPTSUNMASKED | INTERRUPTMASKON | TEBITON | VMONCURR | KERNELON;
 	/* who am i? */
-	asid = (getENTRYHI() && ASIDMASK) >> ASIDSHIFT;
+	asid = (getENTRYHI() & ASIDMASK) >> ASIDSHIFT;
 
 	/* set up 3 new areas for pass up or die */
 	/* TLB */
-	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_asid = asid;
+	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_asid = asid << ASIDSHIFT;
 	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_sp = getStackPageAddr(asid, TLBEXCEPTION);
 	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_pc = (memaddr) Pager;
 	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_t9 = (memaddr) Pager;
 	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_status = newStateStatus;
 	/* program trap */
-	userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION].s_asid = asid;
+	userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION].s_asid = asid << ASIDSHIFT;
 	userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION].s_sp = getStackPageAddr(asid, PROGRAMTRAPEXCEPTION);
 	userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION].s_pc = (memaddr) UserProgramTrapHandler;
 	userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION].s_t9 = (memaddr) UserProgramTrapHandler;
 	userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION].s_status = newStateStatus;
 	/* syscall */
-	userProcArray[asid-1].newAreas[SYSCALLEXCEPTION].s_asid = asid;
+	userProcArray[asid-1].newAreas[SYSCALLEXCEPTION].s_asid = asid << ASIDSHIFT;
 	userProcArray[asid-1].newAreas[SYSCALLEXCEPTION].s_sp = getStackPageAddr(asid, SYSCALLEXCEPTION);
 	userProcArray[asid-1].newAreas[SYSCALLEXCEPTION].s_pc = (memaddr) UserSyscallHandler;
 	userProcArray[asid-1].newAreas[SYSCALLEXCEPTION].s_t9 = (memaddr) UserSyscallHandler;
@@ -162,14 +168,14 @@ HIDDEN void uProcInit()
 	SYSCALL(EXCEPTIONSTATEVEC, SYSCALLEXCEPTION, (int)&(userProcArray[asid-1].oldAreas[SYSCALLEXCEPTION]), (int)&(userProcArray[asid-1].newAreas[SYSCALLEXCEPTION]));
 
 	readTape(asid);
-
 	/* set up user process state */
-	initialState.s_asid = asid;
+	initialState.s_asid = asid << ASIDSHIFT;
 	initialState.s_sp = LASTPAGEKUSEG2;
-	initialState.s_status = ALLOFF | INTERRUPTSUNMASKED | INTERRUPTMASKON | TEBITON | VMON | KERNELOFF;
+	initialState.s_status = ALLOFF | INTERRUPTSUNMASKED | INTERRUPTMASKON | TEBITON | VMONCURR | KERNELOFF;
 	initialState.s_pc = UPROCPCINIT;
 	initialState.s_t9 = UPROCPCINIT;
 
+	debug((int)initialState.s_status,0,0,0);
 	LDST(&initialState);
 }
 

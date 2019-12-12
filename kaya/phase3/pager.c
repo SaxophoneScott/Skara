@@ -44,7 +44,7 @@ void Pager()
 	/* if it's seg 3 then it might be here already */
 	if(segment == KUSEG3)
 	{
-		pagetbe_t pageTableEntry = segTable[asid-1].kuseg3->entries[page];
+		pagetbe_t pageTableEntry = segTable->entries[asid-1].kuseg3->entries[page];
 		unsigned int valid = (pageTableEntry.entryLo & VALIDMASK) >> VALIDSHIFT;
 		/* if the page is already there, then our job is done, so let's quit */
 		if(valid)
@@ -69,7 +69,7 @@ void Pager()
 		{
 			/* turn the valid bit off */
 			allowInterrupts(FALSE);
-			segTable[freeloader-1].kuseg3->entries[pageToBoot].entryLo = segTable[freeloader-1].kuseg3->entries[pageToBoot].entryLo ^ VALIDON;
+			segTable->entries[freeloader-1].kuseg3->entries[pageToBoot].entryLo = segTable->entries[freeloader-1].kuseg3->entries[pageToBoot].entryLo ^ VALIDON;
 			TLBCLR();
 			allowInterrupts(TRUE);
 		}
@@ -131,7 +131,7 @@ void Pager()
 	{
 		/* turn the valid bit on */
 		allowInterrupts(FALSE);
-		segTable[asid-1].kuseg3->entries[page].entryLo = (frame << FRAMESHIFT) + ((segTable[asid-1].kuseg3->entries[page].entryLo | VALIDON) & FRAMENUMMASK);
+		segTable->entries[asid-1].kuseg3->entries[page].entryLo = (frame << FRAMESHIFT) + ((segTable->entries[asid-1].kuseg3->entries[page].entryLo | VALIDON) & FRAMENUMMASK);
 		TLBCLR();
 		allowInterrupts(TRUE);
 	}

@@ -118,8 +118,8 @@ typedef struct semd_t{
 
 /* page table entry */
 typedef struct pagetbe_t{
-	unsigned int 	entryHi;
 	unsigned int 	entryLo;
+	unsigned int 	entryHi;
 } pagetbe_t;
 
 /* kuseg2/3 page table */
@@ -130,15 +130,15 @@ typedef struct kupagetable_t{
 
 /* ksegos3 page table */
 typedef struct ospagetable_t{
-	struct pagetbe_t 		entries[MAXKSEGOS];
 	unsigned int 		header;
+	struct pagetbe_t 		entries[MAXKSEGOS];
 } ospagetable_t;
 
 /* segment table */
 typedef struct segtbe_t{
-	ospagetable_t*			ksegos;
-	kupagetable_t*			kuseg2;
 	kupagetable_t*			kuseg3;
+	kupagetable_t*			kuseg2;
+	ospagetable_t*			ksegos;
 } segtbe_t;
 
 typedef struct segtable_t{
