@@ -23,36 +23,38 @@
 #define TIMESCALEADDR	0x10000024
 
 /* old and new processor state areas */
-#define SYSCALLNEWAREA			0x200003D4
-#define SYSCALLOLDAREA			0x20000348
-#define PROGRAMTRAPNEWAREA		0x200002BC
-#define PROGRAMTRAPOLDAREA		0x20000230
+#define SYSCALLNEWAREA				0x200003D4
+#define SYSCALLOLDAREA				0x20000348
+#define PROGRAMTRAPNEWAREA			0x200002BC
+#define PROGRAMTRAPOLDAREA			0x20000230
 #define TLBMANAGEMENTNEWAREA		0x200001A4
 #define TLBMANAGEMENTOLDAREA		0x20000118
-#define INTERRUPTNEWAREA		0x2000008C
-#define INTERRUPTOLDAREA		0x20000000
+#define INTERRUPTNEWAREA			0x2000008C
+#define INTERRUPTOLDAREA			0x20000000
 
 /* values for controlling bits in the status register */
-#define ALLON					0xFFFFFFFF
-#define ALLOFF					0x00000000
-#define VMONCURR				0x01000000
-#define VMONPREV				0x02000000
-#define INITVMOFF				0x00000000
-#define KERNELON				0x00000000
-#define KERNELOFF				0x00000008
+#define ALLON						0xFFFFFFFF
+#define ALLOFF						0x00000000
+#define VMONCURR					0x01000000
+#define VMONPREV					0x02000000
+#define INITVMOFF					0x00000000
+#define KERNELON					0x00000000
+#define KERNELOFF					0x00000008
 #define INTERRUPTSMASKED 			0x00000000
 #define INTERRUPTSUNMASKED			0x00000004
-#define CURRINTERRUPTSUNMASKED			0x00000001
+#define CURRINTERRUPTSUNMASKED		0x00000001
 #define INTERRUPTMASKOFF 			0x00000000 	/* change this later maybe */
 #define INTERRUPTMASKON				0x0000FF00
-#define TEBITON					0x08000000	/* timer enable bit*/
+#define TEBITON						0x08000000	/* timer enable bit*/
+
 /* values for controlling bits in the cause register */
 #define PRIVILEDGEDINSTR		0x00000028
-#define EXCCODEMASK			0x0000003C
+#define EXCCODEMASK				0x0000003C
 #define EXCCODESHIFT			2
 #define TLBINVALIDLOAD			2
 #define TLBINVALIDSTORE			3
 
+/* values for managing the array of device semaphores and computing device register locations */
 /* need one semaphore for each external device that is not terminal + 2 for each terminal device + 1 for the clock
 	external devices:
 		8 disk devices
@@ -63,24 +65,24 @@
 	so 4*8 + 2*8 + 1 = 49 total semaphores
 	The order of the semaphore array is as follows:
 		[8 disk devices, 8 tape devices, 8 network adapters, 8 printer devices, 8 terminal device transmitters, 8 terminal device receivers, timer] */
-#define DEVICECOUNT			48
-#define SEMCOUNT 			DEVICECOUNT + 1
-#define ITSEMINDEX			48
+#define DEVICECOUNT				48
+#define SEMCOUNT 				DEVICECOUNT + 1
+#define ITSEMINDEX				48
 #define INITIALDEVLINENUM 		3
 #define NUMDEVICESPERTYPE 		8
 #define BASEDEVICEADDRESS		0x10000050
 #define DEVICETYPESIZE 			0x00000080
-#define DEVICESIZE			0x00000010
+#define DEVICESIZE				0x00000010
 
 /* syscall services */
 #define CREATEPROCESS 		1
 #define TERMINATEPROCESS	2
-#define VERHOGEN		3
-#define PASSEREN		4
+#define VERHOGEN			3
+#define PASSEREN			4
 #define EXCEPTIONSTATEVEC	5
-#define	GETCPUTIME		6
+#define	GETCPUTIME			6
 #define WAITFORCLOCK		7
-#define WAITFORIO		8
+#define WAITFORIO			8
 /* other important syscall values */
 #define MINSYSCALL			1
 #define MAXSYSCALL			8
@@ -89,17 +91,17 @@
 
 /* exception types */
 #define TLBEXCEPTION			0
-#define PROGRAMTRAPEXCEPTION		1
+#define PROGRAMTRAPEXCEPTION	1
 #define SYSCALLEXCEPTION		2
 #define NUMEXCEPTIONTYPES		3
 
 /* utility constants */
-#define	TRUE		1
-#define	FALSE		0
+#define	TRUE			1
+#define	FALSE			0
 #define ON              1
 #define OFF             0
-#define HIDDEN		static
-#define EOS		'\0'
+#define HIDDEN			static
+#define EOS				'\0'
 
 #define NULL ((void *)0xFFFFFFFF)
 
@@ -107,25 +109,25 @@
 /* vectors number and type */
 #define VECTSNUM	4
 
+/* possible trap types */
 #define TLBTRAP		0
 #define PROGTRAP	1
 #define SYSTRAP		2
-
 #define TRAPTYPES	3
 
 /* values for determining line number in interrupts pending IP bits of cause reg
-and devince number in interruping devices bit map */
+and device number in interruping devices bit map */
 #define MASKCAUSEREG		0x0000FF00
-#define NUMLINES		8
-#define LINE0			0x00000100
-#define PLTLINE			1
-#define ITLINE 			2
+#define NUMLINES			8
+#define LINE0				0x00000100
+#define PLTLINE				1
+#define ITLINE 				2
 /* #define INTERRUPTLINES[NUMLINES]	{0x00000100, 0x00000200, 0x00000400, 0x00000800, 0x00001000, 0x00002000, 0x00004000, 0x00008000} */
 #define MASKDEVBITMAP		0x000000FF
-#define NUMDEVICES 		8
-#define DEVICE0			0x00000001
+#define NUMDEVICES 			8
+#define DEVICE0				0x00000001
 /* #define INTERRUPTDEVICES[NUMDEVICES]	 {0x00000001, 0x00000002, 0x00000004, 0x00000008, 0x00000010, 0x00000020, 0x00000040, 0x00000080} */
-#define MASKTRANSCHAR	0x0000000F
+#define MASKTRANSCHAR		0x0000000F
 
 /* device interrupts */
 #define DISKINT		3
@@ -149,7 +151,6 @@ and devince number in interruping devices bit map */
 #define TRANSTATUS      2
 #define TRANCOMMAND     3
 
-
 /* device common STATUS codes */
 #define UNINSTALLED	0
 #define READY		1
@@ -157,7 +158,7 @@ and devince number in interruping devices bit map */
 
 /* device common COMMAND codes */
 #define RESET		0
-#define ACK		1
+#define ACK			1
 
 /* operations */
 #define	MIN(A,B)	((A) < (B) ? A : B)
@@ -172,84 +173,96 @@ and devince number in interruping devices bit map */
 #define MAXPROC 	20
 
 /* timing constants */
-#define PLTTIME 	5000
+#define PLTTIME 		5000
 #define INTERVALTIME	100000
 #define SUSPENDTIME 	420420
 
 /* phase 3 things */
-#define SEGMENTTABLE		0x20000500
-#define MAGICNUM			0x2A
-#define LEGALADDRSTART			0x80000000
+
+/* segment ids */
+#define KUSEG2 				2
+#define KUSEG3 				3
+
+/* values for structure sizes */
 #define PROCCNT				1
 #define MAXKUSEG			32
-#define MAXKSEGOS			0x40 /* MAXKUSEG * 2 */
+#define MAXKSEGOS			MAXKUSEG * 2
 #define POOLSIZE			PROCCNT * 2  /* change this */
+#define OSFRAMES			30
+#define UPROCSTACKSIZE		3
+
+/* memory addresses for segments and RAM organization */
+#define SEGMENTTABLE		0x20000500
 #define KSEGOSSTART			0x20000
 #define KUSEG2START			0x80000
-#define LASTPAGEKUSEG2			0xC0000000
 #define	KUSEG3START			0xC0000
 #define KUSEG2LAST			0xBFFFF
+#define LASTPAGEKUSEG2		0xC0000000
+#define UPROCPCINIT			0x800000B0
+#define LEGALADDRSTART		0x80000000
+/* buffer and stack stuff */
+#define TAPEBUFFERSTART		ROMPAGESTART + (OSFRAMES * PAGESIZE)
+#define DISKBUFFERSTART		TAPEBUFFERSTART + (NUMDEVICES * PAGESIZE)
+#define STACKPOOLSTART		DISKBUFFERSTART + (NUMDEVICES * PAGESIZE)
+
+/* values for managing page tables and frame swap pool */
+#define MAGICNUM			0x2A
+#define MAGICNUMSHIFT		24
+#define SEGMASK				0xC0000000
+#define SEGSHIFT			30
+#define PAGEMASK			0x3FFFF000
+#define PAGESHIFT			12
+#define ASIDMASK			0x00000FC0
+#define ASIDSHIFT			6
+#define FRAMENUMMASK		0x00000FFF
+#define FRAMESHIFT			12
 #define DIRTYON				0x00000400
 #define VALIDON				0x00000200 /* 0x00000100 */
 #define GLOBALON			0x00000100 /* 0x00000080 */
-#define UNOCCUPIEDFRAME			-1
-#define MUTEXINIT			1
-#define SYNCINIT			0
-#define MAGICNUMSHIFT			24
-#define PAGESHIFT			12
-#define FRAMESHIFT			12
-#define ASIDSHIFT			6
-#define ASIDMASK			0x00000FC0
-#define UPROCPCINIT			0x800000B0
-#define DEVICECOMMANDSHIFT		8
-#define TERMINALSTATUSMASK		0xFF
-
-/* buffer and stack stuff */
-#define OSFRAMES			30
-#define UPROCSTACKSIZE			3
-#define TAPEBUFFERSTART			ROMPAGESTART + (OSFRAMES * PAGESIZE)
-#define DISKBUFFERSTART			TAPEBUFFERSTART + (NUMDEVICES * PAGESIZE)
-#define STACKPOOLSTART			DISKBUFFERSTART + (NUMDEVICES * PAGESIZE)
-
-#define ENABLEINTERRUPTS		0x00000001 /* 0x00000004 */
-#define DISABLEINTERRUPTS		0xFFFFFFFE /* 0xFFFFFFFB */
-
-#define SEGMASK				0xC0000000
-#define PAGEMASK			0x3FFFF000
-#define SEGSHIFT			30
 #define VALIDMASK			0x00000200
 #define VALIDSHIFT			9
-#define FRAMENUMMASK			0x00000FFF
 
-#define KUSEG2 				2
-#define KUSEG3 				3
-#define KUSEG2HEAD			0
-#define KUSEG3HEAD			1
+#define UNOCCUPIEDFRAME		-1
 
-/* device code stuff */
-#define READBLK				3
-#define EOB				2
-#define SEEKCYL				2
-#define WRITEBLK			4
-#define TRANSMITCHAR			2
-#define CHARTRANSMITTED			5
+/* semaphore initialization values */
+#define MUTEXINIT			1
+#define SYNCINIT			0
 
-#define BACKINGSTORE			0
+/* values to modify interrupt permissions */
+#define ENABLEINTERRUPTS	0x00000001 /* 0x00000004 */
+#define DISABLEINTERRUPTS	0xFFFFFFFE /* 0xFFFFFFFB */
+
+/* values for devices */ 
+#define BACKINGSTORE		0
 #define DISKLINE			3
 #define TAPELINE			4
 #define PRINTERLINE			6
-#define TERMINALLINE			7
+#define TERMINALLINE		7
+
+/* values to manage device registers */
+#define DEVICECOMMANDSHIFT	8
+#define READBLK				3
+#define SEEKCYL				2
+#define WRITEBLK			4
+#define TRANSMITCHAR		2
+#define TERMINALSTATUSMASK	0xFF
+#define EOB					2
+#define CHARTRANSMITTED		5
+
+/* values for determine disk heads */
+#define KUSEG2HEAD			0
+#define KUSEG3HEAD			1
 
 /* user level syscalls */
-#define READFROMTERMINAL		9
-#define WRITETOTERMINAL			10
+#define READFROMTERMINAL	9
+#define WRITETOTERMINAL		10
 #define VVIRTUAL			11
 #define PVIRTUAL			12
 #define DELAY				13
 #define DISKPUT				14
 #define DISKGET				15
-#define WRITETOPRINTER			16
+#define WRITETOPRINTER		16
 #define GETTOD				17
-#define USERTERMINATE 			18
+#define USERTERMINATE 		18
 
 #endif

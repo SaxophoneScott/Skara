@@ -9,14 +9,14 @@
 
 /* phase 3 global variables */
 /* semaphores */
-int 					masterSema4;
-int 					swapmutex;
-int 					deviceSema4s[DEVICECOUNT];
+int 						masterSema4;
+int 						swapmutex;
+int 						deviceSema4s[DEVICECOUNT];
 /* structs */
-segtable_t* 			segTable;
-ospagetable_t			ksegosPT;
-kupagetable_t			kuseg3PT;
-struct upcb_t					userProcArray[PROCCNT];
+segtable_t* 				segTable;
+ospagetable_t				ksegosPT;
+kupagetable_t				kuseg3PT;
+struct upcb_t				userProcArray[PROCCNT];
 struct frameswappoole_t		frameSwapPool[POOLSIZE];
 
 HIDDEN void uProcInit();
@@ -26,18 +26,25 @@ HIDDEN int debug(int a, int b, int c, int d);
 
 HIDDEN int debug(int a, int b, int c, int d){return a;}
 
+/* 
+Method to setup everything necessary to phase 3 VM support and user process execution.
+Initializes all phase 3 global variables and sets up all user processes.
+*/
 void test()
 {
-	int i;								/* loop control variable for various initializations */
-	int n;								/* loop control variable for various initializations */
-	state_t initialState;
+	int i;								/* loop control variable */
+	int n;								/* loop control variable */
+	state_t initialState;				/* state for process that will initialize user processes */
 
 	/* initializing all phase 3 globals */
-	segTable = (segtable_t*) SEGMENTTABLE;
 
-	/* ksegOS page table */
+	/* initialize segment table location */
+	segTable = (segtable_t*) SEGMENTTABLE;								/* needs to go at 0x20000500 so that it can be found */
+
+	/* initialize ksegOS page table */
 	ksegosPT.header = (MAGICNUM << MAGICNUMSHIFT) | MAXKSEGOS;
 	debug((int) ksegosPT.header,0,0,0);
+	/* initialize entry for each page */
 	for(i = 0; i < MAXKSEGOS; i++)
 	{
 		/* entryHi = 0x20000 + i (ASID is irrelephant) */
@@ -47,96 +54,89 @@ void test()
 		if(i==0 || i==1){ debug((int)ksegosPT.entries[i].entryHi,(int)ksegosPT.entries[i].entryLo,0,0); }
 	}
 
-	/* init kuseg3 page table */
+	/* initialize kuseg3 page table */
 	kuseg3PT.header = (MAGICNUM << MAGICNUMSHIFT) | MAXKUSEG;
 	debug((int)kuseg3PT.header,0,0,0);
+	/* initialize entry for each page */
 	for(i = 0; i < MAXKUSEG; i++)
 	{
-		/* entryHi = 0xC0000 + i */
+		/* entryHi = 0xC0000 + i (ASID is irrelephant again since this is a shared segment) */
 		kuseg3PT.entries[i].entryHi = (KUSEG3START + i) << PAGESHIFT;
 		/* entryLo = dirty, global */
 		kuseg3PT.entries[i].entryLo = ALLOFF | DIRTYON | GLOBALON;
 		if(i==0 || i==1){ debug((int)kuseg3PT.entries[i].entryHi,(int)kuseg3PT.entries[i].entryLo,0,0); }
 	}
 
-	/* swap pool */
+	/* initialize swap pool entries */
 	for(i = 0; i < POOLSIZE; i++)
 	{
 		/* ASID = -1 to indicate unoccupied */
 		frameSwapPool[i].ASID = UNOCCUPIEDFRAME;
 	}
 
-	swapmutex = MUTEXINIT;
+	/* initialize swap pool semaphore for mutual exclusion */
+	swapmutex = MUTEXINIT;									/* = 1 (mutex) */
 
-	/* device sema4s */
+	/* initialize all device sema4s for mutual exclusion */
 	for(i = 0; i < DEVICECOUNT; i++)
 	{
-		/* = 1 (mutex) */
-		deviceSema4s[i] = MUTEXINIT;
+		deviceSema4s[i] = MUTEXINIT;						/* = 1 (mutex) */
 	}
 
-	masterSema4 = SYNCINIT; /* (to know when all processes are done and it should SYS2 itself) */
+	/* initialize master semaphore for synchronization
+	/* used for graceful process termination to know when all processes are done and it should SYS2 itself */
+	masterSema4 = SYNCINIT; 								/* = 0 (sync) */
 
+	/* initialize all user processes including their page table and segment table entry */
 	for(n = 1; n < PROCCNT + 1; n++)
 	{
-		/* setup proc n's  kuseg2 page table */
+		/* initialize kuseg2 page table for proc n */
 		userProcArray[n-1].kuseg2PT.header = (MAGICNUM << MAGICNUMSHIFT) | MAXKUSEG;
+		/* initialize entry for each page */
 		for(i = 0; i < MAXKUSEG; i++)
 		{
 			/* entryHi = 0x80000 + i with ASID n */
-			userProcArray[n-1].kuseg2PT.entries[i].entryHi = ((KUSEG2START + i) << PAGESHIFT) | (n << ASIDSHIFT);  /* should this be +i or +n??? */
+			userProcArray[n-1].kuseg2PT.entries[i].entryHi = ((KUSEG2START + i) << PAGESHIFT) | (n << ASIDSHIFT); 
 			/* entryLo = no frame #, dirty, not valid, not global */
 			userProcArray[n-1].kuseg2PT.entries[i].entryLo = ALLOFF | DIRTYON;
 		}
-		/* fix last entry's entryHi to be 0xBFFFF w/ ASID n */
+		/* fix last entry's entryHi to be 0xBFFFF w/ ASID n since this is the stack page */
 		userProcArray[PROCCNT-1].kuseg2PT.entries[MAXKUSEG-1].entryHi = (KUSEG2LAST << PAGESHIFT) | (n << ASIDSHIFT);
 
 		/* setup appropriate 3 entries (for proc n) in global segment table */
-			/* ksegOS = global var table
-			   kuseg2 = process's table we just set up
-			   kuseg3 = global var table
-			*/
-		segTable->entries[n-1].ksegos = &ksegosPT;
-		segTable->entries[n-1].kuseg2 = &(userProcArray[n-1].kuseg2PT);
-		segTable->entries[n-1].kuseg3 = &kuseg3PT;
+		segTable->entries[n-1].ksegos = &ksegosPT; 							/* ksegOS = global var table */
+		segTable->entries[n-1].kuseg2 = &(userProcArray[n-1].kuseg2PT);		/* kuseg2 = process's specific table we just set up */
+		segTable->entries[n-1].kuseg3 = &kuseg3PT;							/* kuseg3 = global var table */
 		debug((int)segTable,(int)&(segTable->entries[n-1].ksegos),(int)&(segTable->entries[n-1].kuseg2),(int)&(segTable->entries[n-1].kuseg3));
 
-		/* setup initial process state */
-			/* ASID = n
-			   stack page = TBD
-			   pc = uProcInit method
-			   status = all interrupts enabled, PLT enabled, VM off, kernel mode on
-			*/
+		/* setup initial process state that will complete user process setup */
 		initialState.s_asid = n << ASIDSHIFT;
-		initialState.s_sp = (memaddr) getStackPageAddr(n, 0);		/* can use any of the process's stack pages for now */
-		initialState.s_pc = (memaddr) uProcInit;
+		initialState.s_sp = (memaddr) getStackPageAddr(n, 0);				/* can use any of the process's stack pages */
+		initialState.s_pc = (memaddr) uProcInit;							/* method to set up trap handlers for proc n and read in proc n's .text and .data */
 		initialState.s_t9 = (memaddr) uProcInit;
 		initialState.s_status = ALLOFF | INTERRUPTSUNMASKED | INTERRUPTMASKON | TEBITON | INITVMOFF | KERNELON;
 
-		/* sys 1 */
+		/* SYS 1 */
 		SYSCALL(CREATEPROCESS, (int)&initialState, 0, 0);
 	}
 
+	/* P the master semaphore for each process created so we know to keep running until they are all terminated */
 	for(i = 0; i < PROCCNT; i++)
 	{
 		SYSCALL(PASSEREN, (int)&masterSema4, 0, 0);
 	}
 
+	/* all user processes have terminated, so we can terminate now */
 	SYSCALL(TERMINATEPROCESS, 0, 0, 0);
 }
 
 HIDDEN void uProcInit()
 {
-	/* init kuseg2 page table
-		3 sys 5s
-		read code from tape to backing store
-		LDST */
-	int asid;
-	/* state_PTR tlbNewArea;
-	state_PTR progNewArea;
-	state_PTR sysNewArea; */
-	state_t initialState;
+	int asid;								/* the user process's ASID */
+	state_t initialState;					/* the initial state for the user process */
+	/* status for the trap handlers */
 	unsigned int newStateStatus = ALLOFF | INTERRUPTSUNMASKED | INTERRUPTMASKON | TEBITON | VMONPREV | KERNELON;
+
 	/* who am i? */
 	asid = (getENTRYHI() & ASIDMASK) >> ASIDSHIFT;
 
@@ -148,34 +148,36 @@ HIDDEN void uProcInit()
 	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_t9 = (memaddr) UserTLBHandler;
 	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_status = newStateStatus;
 	debug((int)((memaddr) UserTLBHandler),0,0,0);
-	/* program trap */
+	/* Program Trap */
 	userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION].s_asid = asid << ASIDSHIFT;
 	userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION].s_sp = getStackPageAddr(asid, PROGRAMTRAPEXCEPTION);
 	userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION].s_pc = (memaddr) UserProgramTrapHandler;
 	userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION].s_t9 = (memaddr) UserProgramTrapHandler;
 	userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION].s_status = newStateStatus;
-	/* syscall */
+	/* Syscall */
 	userProcArray[asid-1].newAreas[SYSCALLEXCEPTION].s_asid = asid << ASIDSHIFT;
 	userProcArray[asid-1].newAreas[SYSCALLEXCEPTION].s_sp = getStackPageAddr(asid, SYSCALLEXCEPTION);
 	userProcArray[asid-1].newAreas[SYSCALLEXCEPTION].s_pc = (memaddr) UserSyscallHandler;
 	userProcArray[asid-1].newAreas[SYSCALLEXCEPTION].s_t9 = (memaddr) UserSyscallHandler;
 	userProcArray[asid-1].newAreas[SYSCALLEXCEPTION].s_status = newStateStatus;
 
-	/* 3 SYS5s */
+	/* 3 SYS5s to actually designate our own handlers */
 	SYSCALL(EXCEPTIONSTATEVEC, TLBEXCEPTION, (int)&(userProcArray[asid-1].oldAreas[TLBEXCEPTION]), (int)&(userProcArray[asid-1].newAreas[TLBEXCEPTION]));
 	SYSCALL(EXCEPTIONSTATEVEC, PROGRAMTRAPEXCEPTION, (int)&(userProcArray[asid-1].oldAreas[PROGRAMTRAPEXCEPTION]), (int)&(userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION]));
 	SYSCALL(EXCEPTIONSTATEVEC, SYSCALLEXCEPTION, (int)&(userProcArray[asid-1].oldAreas[SYSCALLEXCEPTION]), (int)&(userProcArray[asid-1].newAreas[SYSCALLEXCEPTION]));
 
+	/* read in the user process's .text and .data */
 	readTape(asid);
-	/* set up user process state */
+
+	/* set up user process's initial state */
 	initialState.s_asid = asid << ASIDSHIFT;
-	initialState.s_sp = LASTPAGEKUSEG2;
+	initialState.s_sp = LASTPAGEKUSEG2;									/* stack page is the last page of kuseg2 */
 	initialState.s_status = ALLOFF | INTERRUPTSUNMASKED | INTERRUPTMASKON | TEBITON | VMONPREV | KERNELOFF;
-	initialState.s_pc = UPROCPCINIT;
+	initialState.s_pc = UPROCPCINIT;									/* pc is the second word of kuseg2 */
 	initialState.s_t9 = UPROCPCINIT;
 
 	debug((int)initialState.s_status,0,0,0);
-	LDST(&initialState);
+	LDST(&initialState);												/* start the user process up and running */
 }
 
 HIDDEN void readTape(int procNum)
@@ -255,6 +257,7 @@ unsigned int getDiskBufferAddr(int diskNum)
 
 unsigned int getStackPageAddr(int procNum, int exceptionType)
 {
+	debug((int) STACKPOOLSTART + ((procNum-1) * UPROCSTACKSIZE * PAGESIZE) + (exceptionType * PAGESIZE) + PAGESIZE,0,0,0);
 	return STACKPOOLSTART + ((procNum-1) * UPROCSTACKSIZE * PAGESIZE) + (exceptionType * PAGESIZE) + PAGESIZE;
 }
 
