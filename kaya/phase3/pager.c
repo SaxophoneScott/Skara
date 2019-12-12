@@ -2,15 +2,19 @@
 #include "../h/const.h"
 #include "../h/types.h"
 #include "../e/initProc.e"
+#include "../e/pager.e"
 #include "/usr/local/include/umps2/umps/libumps.e"
 
 /* int nextFrame = 0; */
 HIDDEN int findFrame();
 HIDDEN unsigned int getFrameAddr(unsigned int framePoolStart, int frameNum);
 
+HIDDEN int debug2(int a, int b, int c, int d);
+HIDDEN int debug2(int a, int b, int c, int d){ return a; }
 
-void Pager()
+void UserTLBHandler()
 {
+	debug2(0,0,0,0);
 	devregarea_t* busReg;
 	unsigned int framePoolStart;
 	int asid;

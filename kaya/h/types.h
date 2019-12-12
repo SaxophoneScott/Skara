@@ -136,9 +136,9 @@ typedef struct ospagetable_t{
 
 /* segment table */
 typedef struct segtbe_t{
-	kupagetable_t*			kuseg3;
-	kupagetable_t*			kuseg2;
 	ospagetable_t*			ksegos;
+	kupagetable_t*			kuseg2;
+	kupagetable_t*			kuseg3;
 } segtbe_t;
 
 typedef struct segtable_t{

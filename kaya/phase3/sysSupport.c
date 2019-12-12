@@ -2,6 +2,7 @@
 #include "../h/const.h"
 #include "../h/types.h"
 #include "../e/initProc.e"
+#include "../e/sysSupport.e"
 #include "/usr/local/include/umps2/umps/libumps.e"
 
 /* Private/Local Methods */

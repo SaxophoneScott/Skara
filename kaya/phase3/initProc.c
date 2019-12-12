@@ -36,18 +36,19 @@ void test()
 	segTable = (segtable_t*) SEGMENTTABLE;
 
 	/* ksegOS page table */
-	ksegosPT.header = (MAGICNUM << MAGICNUMSHIFT) + MAXKSEGOS;
-	debug((int)ksegosPT.header,0,0,0);
+	ksegosPT.header = (MAGICNUM << MAGICNUMSHIFT) | MAXKSEGOS;
+	debug((int) ksegosPT.header,0,0,0);
 	for(i = 0; i < MAXKSEGOS; i++)
 	{
 		/* entryHi = 0x20000 + i (ASID is irrelephant) */
 		ksegosPT.entries[i].entryHi = (KSEGOSSTART + i) << PAGESHIFT;
 		/* entryLo = 0x20000 + i with dirty, valid, global */
 		ksegosPT.entries[i].entryLo = ((KSEGOSSTART + i) << PAGESHIFT) | DIRTYON | VALIDON | GLOBALON;
+		if(i==0 || i==1){ debug((int)ksegosPT.entries[i].entryHi,(int)ksegosPT.entries[i].entryLo,0,0); }
 	}
 
 	/* init kuseg3 page table */
-	kuseg3PT.header = (MAGICNUM << MAGICNUMSHIFT) + MAXKUSEG;
+	kuseg3PT.header = (MAGICNUM << MAGICNUMSHIFT) | MAXKUSEG;
 	debug((int)kuseg3PT.header,0,0,0);
 	for(i = 0; i < MAXKUSEG; i++)
 	{
@@ -55,6 +56,7 @@ void test()
 		kuseg3PT.entries[i].entryHi = (KUSEG3START + i) << PAGESHIFT;
 		/* entryLo = dirty, global */
 		kuseg3PT.entries[i].entryLo = ALLOFF | DIRTYON | GLOBALON;
+		if(i==0 || i==1){ debug((int)kuseg3PT.entries[i].entryHi,(int)kuseg3PT.entries[i].entryLo,0,0); }
 	}
 
 	/* swap pool */
@@ -75,11 +77,10 @@ void test()
 
 	masterSema4 = SYNCINIT; /* (to know when all processes are done and it should SYS2 itself) */
 
-	for(n = 1; n < PROCCNT+ 1; n++)
+	for(n = 1; n < PROCCNT + 1; n++)
 	{
 		/* setup proc n's  kuseg2 page table */
-		userProcArray[n-1].kuseg2PT.header = (MAGICNUM << MAGICNUMSHIFT) + MAXKUSEG;
-		debug((int)userProcArray[n-1].kuseg2PT.header,0,0,0);
+		userProcArray[n-1].kuseg2PT.header = (MAGICNUM << MAGICNUMSHIFT) | MAXKUSEG;
 		for(i = 0; i < MAXKUSEG; i++)
 		{
 			/* entryHi = 0x80000 + i with ASID n */
@@ -98,10 +99,7 @@ void test()
 		segTable->entries[n-1].ksegos = &ksegosPT;
 		segTable->entries[n-1].kuseg2 = &(userProcArray[n-1].kuseg2PT);
 		segTable->entries[n-1].kuseg3 = &kuseg3PT;
-
-		debug((int)segTable->entries[n-1].ksegos,0,0,0);
-		debug((int)segTable->entries[n-1].kuseg2,(int)&(segTable->entries[n-1].kuseg2->header),(int)&(segTable->entries[n-1].kuseg2->entries),0);
-		debug((int)segTable->entries[n-1].kuseg3,0,0,0);
+		debug((int)segTable,(int)&(segTable->entries[n-1].ksegos),(int)&(segTable->entries[n-1].kuseg2),(int)&(segTable->entries[n-1].kuseg3));
 
 		/* setup initial process state */
 			/* ASID = n
@@ -138,7 +136,7 @@ HIDDEN void uProcInit()
 	state_PTR progNewArea;
 	state_PTR sysNewArea; */
 	state_t initialState;
-	unsigned int newStateStatus = ALLOFF | INTERRUPTSUNMASKED | INTERRUPTMASKON | TEBITON | VMONCURR | KERNELON;
+	unsigned int newStateStatus = ALLOFF | INTERRUPTSUNMASKED | INTERRUPTMASKON | TEBITON | VMONPREV | KERNELON;
 	/* who am i? */
 	asid = (getENTRYHI() & ASIDMASK) >> ASIDSHIFT;
 
@@ -146,9 +144,10 @@ HIDDEN void uProcInit()
 	/* TLB */
 	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_asid = asid << ASIDSHIFT;
 	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_sp = getStackPageAddr(asid, TLBEXCEPTION);
-	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_pc = (memaddr) Pager;
-	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_t9 = (memaddr) Pager;
+	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_pc = (memaddr) UserTLBHandler;
+	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_t9 = (memaddr) UserTLBHandler;
 	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_status = newStateStatus;
+	debug((int)((memaddr) UserTLBHandler),0,0,0);
 	/* program trap */
 	userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION].s_asid = asid << ASIDSHIFT;
 	userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION].s_sp = getStackPageAddr(asid, PROGRAMTRAPEXCEPTION);
@@ -171,7 +170,7 @@ HIDDEN void uProcInit()
 	/* set up user process state */
 	initialState.s_asid = asid << ASIDSHIFT;
 	initialState.s_sp = LASTPAGEKUSEG2;
-	initialState.s_status = ALLOFF | INTERRUPTSUNMASKED | INTERRUPTMASKON | TEBITON | VMONCURR | KERNELOFF;
+	initialState.s_status = ALLOFF | INTERRUPTSUNMASKED | INTERRUPTMASKON | TEBITON | VMONPREV | KERNELOFF;
 	initialState.s_pc = UPROCPCINIT;
 	initialState.s_t9 = UPROCPCINIT;
 
