@@ -98,7 +98,7 @@ void test()
 			userProcArray[n-1].kuseg2PT.entries[i].entryLo = ALLOFF | DIRTYON;
 		}
 		/* fix last entry's entryHi to be 0xBFFFF w/ ASID n since this is the stack page */
-		userProcArray[PROCCNT-1].kuseg2PT.entries[MAXKUSEG-1].entryHi = (KUSEG2LAST << PAGESHIFT) | (n << ASIDSHIFT);
+		userProcArray[n-1].kuseg2PT.entries[MAXKUSEG-1].entryHi = (KUSEG2LAST << PAGESHIFT) | (n << ASIDSHIFT);
 
 		/* setup appropriate 3 entries (for proc n) in global segment table */
 		segTable->entries[n-1].ksegos = &ksegosPT; 							/* ksegOS = global var table */
