@@ -187,7 +187,7 @@ and device number in interruping devices bit map */
 #define PROCCNT				1
 #define MAXKUSEG			32
 #define MAXKSEGOS			80 /* MAXKUSEG * 2 */
-#define POOLSIZE			PROCCNT * 2  /* change this */
+#define POOLSIZE			6  /* PROCCNT * 2 */  /* change this */
 #define OSFRAMES			30
 #define UPROCSTACKSIZE		3
 

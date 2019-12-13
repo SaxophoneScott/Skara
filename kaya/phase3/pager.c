@@ -14,8 +14,7 @@ HIDDEN int debug2(int a, int b, int c, int d){ return a; }
 
 void UserTLBHandler()
 {
-	setSTATUS(ALLOFF | INTERRUPTSUNMASKED | INTERRUPTMASKON | TEBITON | VMONPREV | KERNELON);
-	debug2(0,0,0,0);
+	/* setSTATUS(ALLOFF | INTERRUPTSUNMASKED | INTERRUPTMASKON | TEBITON | VMONPREV | KERNELON); */
 	devregarea_t* busReg;
 	unsigned int framePoolStart;
 	int asid;
@@ -24,36 +23,37 @@ void UserTLBHandler()
 	int segment;
 	int page;
 	int frame;
+	unsigned int frameAddr;
+
 	/* establish frame pool address */
 	busReg = (devregarea_t*) RAMBASEADDR;
 	framePoolStart = (busReg->rambase + busReg->ramsize) - ((POOLSIZE + 3) * PAGESIZE);
 	/* who am i? */
 	asid = (getENTRYHI() & ASIDMASK) >> ASIDSHIFT;
-	debug2(asid,0,0,0);
+
 	/* why am i here? */
 	cause = userProcArray[asid-1].oldAreas[TLBEXCEPTION].s_cause;
 	excCode = (cause & EXCCODEMASK) >> EXCCODESHIFT;
-	debug2((int)cause,(int)EXCCODEMASK,(int)EXCCODESHIFT,excCode);
+	debug2((int)cause,excCode,0,0);
 
 	/* if it's not an invalid load or store, then just kill it. sorry :( */
 	if((excCode != TLBINVALIDLOAD) && (excCode != TLBINVALIDSTORE))
-	debug2(excCode,0,0,0);
 	{
 		SYSCALL(USERTERMINATE, 0, 0, 0);
 	}
-	debug2(0,0,0,0);
 
 	/* get page num and segment num */
-	segment = (userProcArray[asid-1].oldAreas[TLBEXCEPTION].s_HI & SEGMASK) >> SEGSHIFT;
-	page = (userProcArray[asid-1].oldAreas[TLBEXCEPTION].s_HI & PAGEMASK) >> PAGESHIFT;
+	segment = (userProcArray[asid-1].oldAreas[TLBEXCEPTION].s_asid & SEGMASK) >> SEGSHIFT;
+	page = (userProcArray[asid-1].oldAreas[TLBEXCEPTION].s_asid & PAGEMASK) >> PAGESHIFT;
+	debug2((int)segment, (int)page,0,0);
 
 	/* gain mutex of swap pool */
 	SYSCALL(PASSEREN, (int)&swapmutex, 0, 0);
-	debug2(0,0,0,0);
 
 	/* if it's seg 3 then it might be here already */
 	if(segment == KUSEG3)
 	{
+		debug2(3,3,3,3);
 		pagetbe_t pageTableEntry = segTable->entries[asid-1].kuseg3->entries[page];
 		unsigned int valid = (pageTableEntry.entryLo & VALIDMASK) >> VALIDSHIFT;
 		/* if the page is already there, then our job is done, so let's quit */
@@ -63,16 +63,18 @@ void UserTLBHandler()
 			LDST(&(userProcArray[asid-1].oldAreas[TLBEXCEPTION]));
 		}
 	}
-	debug2(0,0,0,0);
 
 	/* the page ain't there, so we gotta problem to fix */
 	int deviceIndex;
 	device_t* backingStore;
 	frame = findFrame();
+	frameAddr = getFrameAddr(framePoolStart, frame);
+	debug2(frame, (int)frameAddr,(int)framePoolStart,0);
 
 	/* uh oh the frame is occupied... there can only be one of us, so time to give them the boot */
 	if(frameSwapPool[frame].ASID != UNOCCUPIEDFRAME)
 	{
+		debug2(-1,-1,-1,-1);
 		int freeloader = frameSwapPool[frame].ASID;
 		int segToBoot = frameSwapPool[frame].segNum;
 		int pageToBoot = frameSwapPool[frame].pageNum;
@@ -80,7 +82,7 @@ void UserTLBHandler()
 		{
 			/* turn the valid bit off */
 			allowInterrupts(FALSE);
-			segTable->entries[freeloader-1].kuseg3->entries[pageToBoot].entryLo = segTable->entries[freeloader-1].kuseg3->entries[pageToBoot].entryLo ^ VALIDON;
+			segTable->entries[freeloader].kuseg3->entries[pageToBoot].entryLo = segTable->entries[freeloader].kuseg3->entries[pageToBoot].entryLo ^ VALIDON;
 			TLBCLR();
 			allowInterrupts(TRUE);
 		}
@@ -104,14 +106,16 @@ void UserTLBHandler()
 		backingStore->d_command = SEEKCYL + (getCylinderNum(pageToBoot) << DEVICECOMMANDSHIFT);
 		SYSCALL(WAITFORIO, DISKLINE, BACKINGSTORE, 0);
 
-		backingStore->d_data0 = getFrameAddr(framePoolStart, frame); /* starting addr from where to find stuff to write */
+		backingStore->d_data0 = frameAddr; /* starting addr from where to find stuff to write */
 		backingStore->d_command = WRITEBLK + (getSectorNum(freeloader) << DEVICECOMMANDSHIFT) + (getHeadNum(segToBoot) << 2*DEVICECOMMANDSHIFT);
 		SYSCALL(WAITFORIO, DISKLINE, BACKINGSTORE, 0);
 
 		allowInterrupts(TRUE);
 		/* release mutex of disk0 */
-		SYSCALL(VERHOGEN, (int)&(deviceSema4s[deviceIndex]), 0, 0);	} /* done handling if it wasn't empty */
+		SYSCALL(VERHOGEN, (int)&(deviceSema4s[deviceIndex]), 0, 0);
+	} /* done handling if it wasn't empty */
 
+	debug2(0,0,0,0);
 	/* read missing page into selected frame */
 
 	/* get mutex of disk0 */
@@ -124,7 +128,7 @@ void UserTLBHandler()
 	backingStore->d_command = SEEKCYL + (getCylinderNum(page) << DEVICECOMMANDSHIFT);
 	SYSCALL(WAITFORIO, DISKLINE, BACKINGSTORE, 0);
 
-	backingStore->d_data0 = getFrameAddr(framePoolStart, frame); /* starting addr to write the data retrieved */
+	backingStore->d_data0 = frameAddr; /* starting addr to write the data retrieved */
 	backingStore->d_command = READBLK + (getSectorNum(asid) << DEVICECOMMANDSHIFT) + (getHeadNum(segment) << 2*DEVICECOMMANDSHIFT);
 	SYSCALL(WAITFORIO, DISKLINE, BACKINGSTORE, 0);
 
@@ -137,12 +141,13 @@ void UserTLBHandler()
 	frameSwapPool[frame].segNum = segment;
 	frameSwapPool[frame].pageNum = page;
 
+	debug2(2,2,2,2);
 	/* update page table with frame number and valid */
 	if(segment == KUSEG3)
 	{
 		/* turn the valid bit on */
 		allowInterrupts(FALSE);
-		segTable->entries[asid-1].kuseg3->entries[page].entryLo = (frame << FRAMESHIFT) + ((segTable->entries[asid-1].kuseg3->entries[page].entryLo | VALIDON) & FRAMENUMMASK);
+		segTable->entries[asid].kuseg3->entries[page].entryLo = (frameAddr) + ((segTable->entries[asid].kuseg3->entries[page].entryLo | VALIDON) & FRAMENUMMASK);
 		TLBCLR();
 		allowInterrupts(TRUE);
 	}
@@ -150,7 +155,7 @@ void UserTLBHandler()
 	{
 		/* turn the valid bit off */
 		allowInterrupts(FALSE);
-		userProcArray[asid-1].kuseg2PT.entries[page].entryLo = (frame << FRAMESHIFT) + ((userProcArray[asid-1].kuseg2PT.entries[page].entryLo | VALIDON) & FRAMENUMMASK);
+		userProcArray[asid-1].kuseg2PT.entries[page].entryLo = (frameAddr) + ((userProcArray[asid-1].kuseg2PT.entries[page].entryLo | VALIDON) & FRAMENUMMASK);
 		TLBCLR();
 		allowInterrupts(TRUE);
 	}
@@ -159,6 +164,7 @@ void UserTLBHandler()
 	/* release mutex */
 	SYSCALL(VERHOGEN, (int)&swapmutex, 0, 0);
 
+	debug2(42,42,42,42);
 	/* return control to process */
 	LDST(&(userProcArray[asid-1].oldAreas[TLBEXCEPTION]));
 

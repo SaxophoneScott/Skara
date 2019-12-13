@@ -113,9 +113,9 @@ void test()
 		debug((int)ramtop, (int)ptBottom, (int)ptTop,0);
 
 		/* setup appropriate 3 entries (for proc n) in global segment table */
-		segTable->entries[n-1].ksegos = &ksegosPT; 							/* ksegOS = global var table */
-		segTable->entries[n-1].kuseg2 = &(userProcArray[n-1].kuseg2PT);		/* kuseg2 = process's specific table we just set up */
-		segTable->entries[n-1].kuseg3 = &kuseg3PT;							/* kuseg3 = global var table */
+		segTable->entries[n].ksegos = &ksegosPT; 							/* ksegOS = global var table */
+		segTable->entries[n].kuseg2 = &(userProcArray[n-1].kuseg2PT);		/* kuseg2 = process's specific table we just set up */
+		segTable->entries[n].kuseg3 = &kuseg3PT;							/* kuseg3 = global var table */
 		debug((int)segTable, (int)segTable->entries[n-1].ksegos, (int)segTable->entries[n-1].kuseg2, (int)segTable->entries[n-1].kuseg3);
 
 		/* setup initial process state that will complete user process setup */
