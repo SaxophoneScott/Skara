@@ -14,6 +14,7 @@ HIDDEN int debug2(int a, int b, int c, int d){ return a; }
 
 void UserTLBHandler()
 {
+	setSTATUS(ALLOFF | INTERRUPTSUNMASKED | INTERRUPTMASKON | TEBITON | VMONPREV | KERNELON);
 	debug2(0,0,0,0);
 	devregarea_t* busReg;
 	unsigned int framePoolStart;
@@ -28,15 +29,19 @@ void UserTLBHandler()
 	framePoolStart = (busReg->rambase + busReg->ramsize) - ((POOLSIZE + 3) * PAGESIZE);
 	/* who am i? */
 	asid = (getENTRYHI() & ASIDMASK) >> ASIDSHIFT;
-
+	debug2(asid,0,0,0);
 	/* why am i here? */
 	cause = userProcArray[asid-1].oldAreas[TLBEXCEPTION].s_cause;
-	excCode = cause & EXCCODEMASK >> EXCCODESHIFT;
+	excCode = (cause & EXCCODEMASK) >> EXCCODESHIFT;
+	debug2((int)cause,(int)EXCCODEMASK,(int)EXCCODESHIFT,excCode);
+
 	/* if it's not an invalid load or store, then just kill it. sorry :( */
 	if((excCode != TLBINVALIDLOAD) && (excCode != TLBINVALIDSTORE))
+	debug2(excCode,0,0,0);
 	{
-		SYSCALL(TERMINATEPROCESS, 0, 0, 0);
+		SYSCALL(USERTERMINATE, 0, 0, 0);
 	}
+	debug2(0,0,0,0);
 
 	/* get page num and segment num */
 	segment = (userProcArray[asid-1].oldAreas[TLBEXCEPTION].s_HI & SEGMASK) >> SEGSHIFT;
@@ -44,6 +49,7 @@ void UserTLBHandler()
 
 	/* gain mutex of swap pool */
 	SYSCALL(PASSEREN, (int)&swapmutex, 0, 0);
+	debug2(0,0,0,0);
 
 	/* if it's seg 3 then it might be here already */
 	if(segment == KUSEG3)
@@ -57,6 +63,7 @@ void UserTLBHandler()
 			LDST(&(userProcArray[asid-1].oldAreas[TLBEXCEPTION]));
 		}
 	}
+	debug2(0,0,0,0);
 
 	/* the page ain't there, so we gotta problem to fix */
 	int deviceIndex;

@@ -52,6 +52,10 @@ HIDDEN void BlockHelperFunction(state_PTR syscallOld, int* semaddr, pcb_PTR proc
 HIDDEN void PassUpOrDie(state_PTR oldState, int exceptionType);
 HIDDEN void CopyState(state_PTR newState, state_PTR oldState);
 
+HIDDEN int dummy(int a, int b, int c, int d);
+
+HIDDEN int dummy(int a, int b, int c, int d){ return a; }
+
 void SyscallHandler()
 /* Handles all SYSCALL exceptions
 SYSCALL Handler checks the state of the old SYSCALL area and increments the pc by 4.
@@ -64,7 +68,6 @@ trigger a Program Trap (Reserved Instruction) Exception, and pass up or die is c
 */
 {
 	state_PTR syscallOld = (state_PTR) SYSCALLOLDAREA;				/* state of the process issuing a syscall */
-	syscallOld->s_pc += WORDLEN;									/* increment the pc, so the process will move on when it starts again */
 
 	/* the syscall parameters/a registers */
 	unsigned int l_a0 = syscallOld -> s_a0;
@@ -98,6 +101,7 @@ trigger a Program Trap (Reserved Instruction) Exception, and pass up or die is c
 	/* if(l_a0 > 8 || (!userMode && 1 <= l_a0 && l_a0 <= 8)) */
 	else
 	{
+		syscallOld->s_pc += WORDLEN;									/* increment the pc, so the process will move on when it starts again */
 		/* determine which syscall from a0 and handle it */
 		switch(l_a0){ 
 			/* SYS 1 */
@@ -494,6 +498,7 @@ param: exceptionType - value indicating which type of exception is being dealt w
 	   0 for TLB Trap, 1 for Program Trap, 2 for SYSCALL
 */
 {
+	dummy((int)oldState->s_cause,0,0,0);
 	/* case: DIE - an exception state vector (SYS5) has not be set up */
 	if((currentProcess->oldAreas[exceptionType] == NULL) || (currentProcess->newAreas[exceptionType] == NULL)){
 		TerminateProcess(oldState, currentProcess);
@@ -501,6 +506,7 @@ param: exceptionType - value indicating which type of exception is being dealt w
 	} else {
 		CopyState(currentProcess->oldAreas[exceptionType], oldState);				/* copy states based on the exception state vector */
 		CopyState(&(currentProcess->p_s), currentProcess->newAreas[exceptionType]);
+		dummy((int)currentProcess->newAreas[exceptionType]->s_pc,(int)currentProcess->newAreas[exceptionType]->s_sp,(int)currentProcess->newAreas[exceptionType]->s_t9,currentProcess->newAreas[exceptionType]->s_status);
 		LoadState(currentProcess->newAreas[exceptionType]);							/* pass control up to the process's exception handler */
 	}
 }

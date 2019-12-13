@@ -125,12 +125,14 @@ typedef struct pagetbe_t{
 /* kuseg2/3 page table */
 typedef struct kupagetable_t{
 	unsigned int 	header;
+	unsigned int 	dummySpace;
 	struct pagetbe_t 		entries[MAXKUSEG];
 } kupagetable_t;
 
 /* ksegos3 page table */
 typedef struct ospagetable_t{
 	unsigned int 		header;
+	unsigned int 		dummySpace;
 	struct pagetbe_t 		entries[MAXKSEGOS];
 } ospagetable_t;
 

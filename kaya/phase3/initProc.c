@@ -52,6 +52,11 @@ void test()
 		ksegosPT.entries[i].entryLo = ((KSEGOSSTART + i) << PAGESHIFT) | DIRTYON | VALIDON | GLOBALON;
 		/* debug((int)ksegosPT.entries[i].entryHi, (int)ksegosPT.entries[i].entryLo,0,0); */
 	}
+	devregarea_t* busReg = (devregarea_t*) RAMBASEADDR;
+	memaddr ramtop = busReg->rambase + busReg->ramsize;
+	memaddr ptBottom = &ksegosPT;
+	memaddr ptTop = ptBottom + 4 + (8 * MAXKSEGOS);
+	debug((int)ramtop, (int)ptBottom, (int)ptTop,0);
 
 	/* initialize kuseg3 page table */
 	kuseg3PT.header = (MAGICNUM << MAGICNUMSHIFT) | MAXKUSEG;
@@ -63,6 +68,9 @@ void test()
 		/* entryLo = dirty, global */
 		kuseg3PT.entries[i].entryLo = ALLOFF | DIRTYON | GLOBALON;
 	}
+	ptBottom = &kuseg3PT;
+	ptTop = ptBottom + 4 + (8 * MAXKUSEG);
+	debug((int)ramtop, (int)ptBottom, (int)ptTop,0);
 
 	/* initialize swap pool entries */
 	for(i = 0; i < POOLSIZE; i++)
@@ -100,10 +108,15 @@ void test()
 		/* fix last entry's entryHi to be 0xBFFFF w/ ASID n since this is the stack page */
 		userProcArray[n-1].kuseg2PT.entries[MAXKUSEG-1].entryHi = (KUSEG2LAST << PAGESHIFT) | (n << ASIDSHIFT);
 
+		ptBottom = &(userProcArray[n-1].kuseg2PT);
+		ptTop = ptBottom + 4 + (8 * MAXKUSEG);
+		debug((int)ramtop, (int)ptBottom, (int)ptTop,0);
+
 		/* setup appropriate 3 entries (for proc n) in global segment table */
 		segTable->entries[n-1].ksegos = &ksegosPT; 							/* ksegOS = global var table */
 		segTable->entries[n-1].kuseg2 = &(userProcArray[n-1].kuseg2PT);		/* kuseg2 = process's specific table we just set up */
 		segTable->entries[n-1].kuseg3 = &kuseg3PT;							/* kuseg3 = global var table */
+		debug((int)segTable, (int)segTable->entries[n-1].ksegos, (int)segTable->entries[n-1].kuseg2, (int)segTable->entries[n-1].kuseg3);
 
 		/* setup initial process state that will complete user process setup */
 		initialState.s_asid = n << ASIDSHIFT;
@@ -149,7 +162,7 @@ HIDDEN void uProcInit()
 	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_sp = (memaddr) getStackPageAddr(asid, TLBEXCEPTION);
 	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_pc = (memaddr) UserTLBHandler;
 	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_t9 = (memaddr) UserTLBHandler;
-	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_status = newStateStatus;
+	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_status = ALLOFF | INTERRUPTSUNMASKED | INTERRUPTMASKON | TEBITON | KERNELON;
 	/* Program Trap */
 	userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION].s_asid = asid << ASIDSHIFT;
 	userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION].s_sp = (memaddr) getStackPageAddr(asid, PROGRAMTRAPEXCEPTION);

@@ -36,7 +36,7 @@
 #define ALLON						0xFFFFFFFF
 #define ALLOFF						0x00000000
 #define VMONCURR					0x01000000
-#define VMONPREV					0x00000000 /* 0x02000000 */
+#define VMONPREV					0x02000000 /* 0x02000000 */
 #define INITVMOFF					0x00000000
 #define KERNELON					0x00000000
 #define KERNELOFF					0x00000008
@@ -49,7 +49,7 @@
 
 /* values for controlling bits in the cause register */
 #define PRIVILEDGEDINSTR		0x00000028
-#define EXCCODEMASK				0x0000003C
+#define EXCCODEMASK				0x0000007C
 #define EXCCODESHIFT			2
 #define TLBINVALIDLOAD			2
 #define TLBINVALIDSTORE			3
