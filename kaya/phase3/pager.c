@@ -85,6 +85,22 @@ void UserTLBHandler()
 			segTable->entries[freeloader].kuseg3->entries[pageToBoot].entryLo = segTable->entries[freeloader].kuseg3->entries[pageToBoot].entryLo ^ VALIDON;
 			TLBCLR();
 			allowInterrupts(TRUE);
+			/* assume the page is dirty, so write it to backing store */
+			/* get mutex of disk0 */
+			SYSCALL(PASSEREN, (int)&(deviceSema4s[deviceIndex]), 0, 0);
+
+			allowInterrupts(FALSE);
+			/* write to disk0 */
+			backingStore->d_command = SEEKCYL + (getCylinderNum(pageToBoot) << DEVICECOMMANDSHIFT);
+			SYSCALL(WAITFORIO, DISKLINE, BACKINGSTORE, 0);
+
+			backingStore->d_data0 = frameAddr; /* starting addr from where to find stuff to write */
+			backingStore->d_command = WRITEBLK + (getSectorNum(0) << DEVICECOMMANDSHIFT) + (getHeadNum(segToBoot) << 2*DEVICECOMMANDSHIFT);
+			SYSCALL(WAITFORIO, DISKLINE, BACKINGSTORE, 0);
+
+			allowInterrupts(TRUE);
+			/* release mutex of disk0 */
+			SYSCALL(VERHOGEN, (int)&(deviceSema4s[deviceIndex]), 0, 0);
 		}
 		else if(segToBoot == KUSEG2)
 		{
@@ -93,24 +109,24 @@ void UserTLBHandler()
 			userProcArray[freeloader-1].kuseg2PT.entries[pageToBoot].entryLo = userProcArray[freeloader-1].kuseg2PT.entries[pageToBoot].entryLo ^ VALIDON;
 			TLBCLR();
 			allowInterrupts(TRUE);
-		}
 
-		/* assume the page is dirty, so write it to backing store */
-		/* get mutex of disk0 */
-		SYSCALL(PASSEREN, (int)&(deviceSema4s[deviceIndex]), 0, 0);
+			/* assume the page is dirty, so write it to backing store */
+			/* get mutex of disk0 */
+			SYSCALL(PASSEREN, (int)&(deviceSema4s[deviceIndex]), 0, 0);
 
-		allowInterrupts(FALSE);
-		/* write to disk0 */
-		backingStore->d_command = SEEKCYL + (getCylinderNum(pageToBoot) << DEVICECOMMANDSHIFT);
-		SYSCALL(WAITFORIO, DISKLINE, BACKINGSTORE, 0);
+			allowInterrupts(FALSE);
+			/* write to disk0 */
+			backingStore->d_command = SEEKCYL + (getCylinderNum(pageToBoot) << DEVICECOMMANDSHIFT);
+			SYSCALL(WAITFORIO, DISKLINE, BACKINGSTORE, 0);
 
-		backingStore->d_data0 = frameAddr; /* starting addr from where to find stuff to write */
-		backingStore->d_command = WRITEBLK + (getSectorNum(freeloader) << DEVICECOMMANDSHIFT) + (getHeadNum(segToBoot) << 2*DEVICECOMMANDSHIFT);
-		SYSCALL(WAITFORIO, DISKLINE, BACKINGSTORE, 0);
+			backingStore->d_data0 = frameAddr; /* starting addr from where to find stuff to write */
+			backingStore->d_command = WRITEBLK + (getSectorNum(freeloader) << DEVICECOMMANDSHIFT) + (getHeadNum(segToBoot) << 2*DEVICECOMMANDSHIFT);
+			SYSCALL(WAITFORIO, DISKLINE, BACKINGSTORE, 0);
 
-		allowInterrupts(TRUE);
-		/* release mutex of disk0 */
-		SYSCALL(VERHOGEN, (int)&(deviceSema4s[deviceIndex]), 0, 0);
+			allowInterrupts(TRUE);
+			/* release mutex of disk0 */
+			SYSCALL(VERHOGEN, (int)&(deviceSema4s[deviceIndex]), 0, 0);
+			}
 	} /* done handling if it wasn't empty */
 
 	debug2(0,0,0,0);
