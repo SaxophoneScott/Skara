@@ -126,10 +126,16 @@ void test()
 	SYSCALL(TERMINATEPROCESS, 0, 0, 0);
 }
 
+/*
+Method to initialize the user process.
+Sets up three new state for the different trap handlers, reads the user process's .text and .data onto the
+backing store device, sets up the processor state to be used for the user process's execution, and loads 
+this processor state.
+*/
 HIDDEN void uProcInit()
 {
-	int asid;								/* the user process's ASID */
-	state_t initialState;					/* the initial state for the user process */
+	int asid;										/* the user process's ASID */
+	state_t initialState;							/* the initial state for the user process */
 	/* status for the trap handlers */
 	unsigned int newStateStatus = ALLOFF | INTERRUPTSUNMASKED | INTERRUPTMASKON | TEBITON | VMONPREV | KERNELON;
 
@@ -168,24 +174,32 @@ HIDDEN void uProcInit()
 	initialState.s_asid = asid << ASIDSHIFT;
 	initialState.s_sp = (memaddr) LASTPAGEKUSEG2;									/* stack page is the last page of kuseg2 */
 	initialState.s_status = ALLOFF | INTERRUPTSUNMASKED | INTERRUPTMASKON | TEBITON | KERNELOFF | VMONPREV;
-	initialState.s_pc = (memaddr) UPROCPCINIT;									/* pc is the second word of kuseg2 */
+	initialState.s_pc = (memaddr) UPROCPCINIT;										/* pc is the second word of kuseg2 */
 	initialState.s_t9 = (memaddr) UPROCPCINIT;
 
 	debug((int)initialState.s_status,0,0,0);
 	LDST(&initialState);												/* start the user process up and running */
 }
 
+/*
+Method to read the user process's .text and .data from the tape and put it onto the backing store device. 
+Reads a block from the tape associated with the user process and places that block onto backing store 
+repeatedly. Continues this until there is nothing left on the tape.
+param:procNum - the ASID of the user process
+*/
 HIDDEN void readTape(int procNum)
 {
-	int i = 0;							/* counter for page number */
-	int moreToRead = TRUE;
-	unsigned int tapeStatus;
-	int tapeDeviceNum = procNum-1;
+	int i = 0;														/* counter for page number */
+	int moreToRead = TRUE;											/* flag for if there is more to read off the tape */
+	unsigned int tapeStatus;										/* the status of the tape device */
+	int tapeDeviceNum = procNum-1;									/* device num for the device associated with the user process */
 	int zero = 0;
+	/* pointer to the tape's device register */
 	device_t* tape = (device_t*) (BASEDEVICEADDRESS + ((TAPELINE - INITIALDEVLINENUM) * DEVICETYPESIZE) + (tapeDeviceNum * DEVICESIZE));
+	
+	/* read a block from the tape atomically */
 	allowInterrupts(FALSE);
-	/* read the tape */
-	tape->d_data0 = getTapeBufferAddr(tapeDeviceNum); /* put starting address of where we wanna put the tape data */
+	tape->d_data0 = getTapeBufferAddr(tapeDeviceNum); 				/* starting address of where we want to put the tape data */
 	tape->d_command = READBLK;
 	tapeStatus = SYSCALL(WAITFORIO, TAPELINE, tapeDeviceNum, zero);
 	allowInterrupts(TRUE);
