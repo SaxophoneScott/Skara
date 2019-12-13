@@ -27,13 +27,13 @@ void UserTLBHandler()
 	busReg = (devregarea_t*) RAMBASEADDR;
 	framePoolStart = (busReg->rambase + busReg->ramsize) - ((POOLSIZE + 3) * PAGESIZE);
 	/* who am i? */
-	asid = (getENTRYHI() && ASIDMASK) >> ASIDSHIFT;
+	asid = (getENTRYHI() & ASIDMASK) >> ASIDSHIFT;
 
 	/* why am i here? */
 	cause = userProcArray[asid-1].oldAreas[TLBEXCEPTION].s_cause;
 	excCode = cause & EXCCODEMASK >> EXCCODESHIFT;
 	/* if it's not an invalid load or store, then just kill it. sorry :( */
-	if(excCode != TLBINVALIDLOAD && excCode != TLBINVALIDSTORE)
+	if((excCode != TLBINVALIDLOAD) && (excCode != TLBINVALIDSTORE))
 	{
 		SYSCALL(TERMINATEPROCESS, 0, 0, 0);
 	}

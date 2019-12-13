@@ -26,7 +26,7 @@ HIDDEN int debug(int a, int b, int c, int d);
 
 HIDDEN int debug(int a, int b, int c, int d){return a;}
 
-/* 
+/*
 Method to setup everything necessary to phase 3 VM support and user process execution.
 Initializes all phase 3 global variables and sets up all user processes.
 */
@@ -122,6 +122,7 @@ void test()
 		SYSCALL(PASSEREN, (int)&masterSema4, 0, 0);
 	}
 
+	debug(0,0,0,0);
 	/* all user processes have terminated, so we can terminate now */
 	SYSCALL(TERMINATEPROCESS, 0, 0, 0);
 }
@@ -129,7 +130,7 @@ void test()
 /*
 Method to initialize the user process.
 Sets up three new state for the different trap handlers, reads the user process's .text and .data onto the
-backing store device, sets up the processor state to be used for the user process's execution, and loads 
+backing store device, sets up the processor state to be used for the user process's execution, and loads
 this processor state.
 */
 HIDDEN void uProcInit()
@@ -141,7 +142,7 @@ HIDDEN void uProcInit()
 
 	/* who am i? */
 	asid = (getENTRYHI() & ASIDMASK) >> ASIDSHIFT;
-	debug(asid, 0 ,0 ,0);
+
 	/* set up 3 new areas for pass up or die */
 	/* TLB */
 	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_asid = asid << ASIDSHIFT;
@@ -177,13 +178,13 @@ HIDDEN void uProcInit()
 	initialState.s_pc = (memaddr) UPROCPCINIT;										/* pc is the second word of kuseg2 */
 	initialState.s_t9 = (memaddr) UPROCPCINIT;
 
-	debug((int)initialState.s_status,0,0,0);
+	debug((int)initialState.s_sp,(int)initialState.s_status,(int)initialState.s_pc,0);
 	LDST(&initialState);												/* start the user process up and running */
 }
 
 /*
-Method to read the user process's .text and .data from the tape and put it onto the backing store device. 
-Reads a block from the tape associated with the user process and places that block onto backing store 
+Method to read the user process's .text and .data from the tape and put it onto the backing store device.
+Reads a block from the tape associated with the user process and places that block onto backing store
 repeatedly. Continues this until there is nothing left on the tape.
 param:procNum - the ASID of the user process
 */
@@ -196,7 +197,7 @@ HIDDEN void readTape(int procNum)
 	int zero = 0;
 	/* pointer to the tape's device register */
 	device_t* tape = (device_t*) (BASEDEVICEADDRESS + ((TAPELINE - INITIALDEVLINENUM) * DEVICETYPESIZE) + (tapeDeviceNum * DEVICESIZE));
-	
+
 	/* read a block from the tape atomically */
 	allowInterrupts(FALSE);
 	tape->d_data0 = getTapeBufferAddr(tapeDeviceNum); 				/* starting address of where we want to put the tape data */
@@ -226,7 +227,7 @@ HIDDEN void readTape(int procNum)
 		SYSCALL(VERHOGEN, (int)&(deviceSema4s[devIndex]), zero, zero);
 
 		moreToRead = (tape->d_data1 == EOB); /* (tape->d_data1 == EOB); */
-		debug(getCylinderNum(i), getSectorNum(procNum), getHeadNum(KUSEG2), moreToRead);
+		/* debug(getCylinderNum(i), getSectorNum(procNum), getHeadNum(KUSEG2), moreToRead); */
 		i++;
 
 		if(moreToRead)

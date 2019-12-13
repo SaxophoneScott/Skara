@@ -14,22 +14,30 @@ HIDDEN void WriteToPrinter(int asid, state_PTR syscallOld, char* sourceAddr, int
 HIDDEN void GetTOD(state_PTR syscallOld);
 HIDDEN void UserTerminate(int asid, state_PTR syscallOld);
 
+HIDDEN int debug3(int a, int b, int c, int d);
+
+HIDDEN int debug3(int a, int b, int c, int d){ return a; }
+
 void UserSyscallHandler()
 {
 	/* int asid;
 	state_PTR syscallOld; */
 
 	/* who am I? */
-	int asid = (getENTRYHI() && ASIDMASK) >> ASIDSHIFT;
+	int asid = (getENTRYHI() & ASIDMASK) >> ASIDSHIFT;
+	debug3(asid,(int)getENTRYHI(),0,0);
 
 	state_PTR syscallOld = &(userProcArray[asid-1].oldAreas[SYSCALLEXCEPTION]);	/* state of the process issuing a syscall */
 	syscallOld->s_pc += WORDLEN;									/* increment the pc, so the process will move on when it starts again */
+	debug3((int)syscallOld,0,0,0);
 
 	/* the syscall parameters/a registers */
 	unsigned int l_a0 = syscallOld -> s_a0;
 	unsigned int l_a1 = syscallOld -> s_a1;
 	unsigned int l_a2 = syscallOld -> s_a2;
 	unsigned int l_a3 = syscallOld -> s_a3;
+
+	debug3((int)l_a0, (int)l_a1, (int)l_a2, (int)l_a3);
 
 	/* determine which syscall from a0 and handle it */
 	switch(l_a0){
