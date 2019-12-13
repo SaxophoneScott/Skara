@@ -36,7 +36,7 @@
 #define ALLON						0xFFFFFFFF
 #define ALLOFF						0x00000000
 #define VMONCURR					0x01000000
-#define VMONPREV					0x02000000
+#define VMONPREV					0x02000000 /* 0x02000000 */
 #define INITVMOFF					0x00000000
 #define KERNELON					0x00000000
 #define KERNELOFF					0x00000008
@@ -186,7 +186,7 @@ and device number in interruping devices bit map */
 /* values for structure sizes */
 #define PROCCNT				1
 #define MAXKUSEG			32
-#define MAXKSEGOS			MAXKUSEG * 2
+#define MAXKSEGOS			80 /* MAXKUSEG * 2 */
 #define POOLSIZE			PROCCNT * 2  /* change this */
 #define OSFRAMES			30
 #define UPROCSTACKSIZE		3
@@ -198,7 +198,7 @@ and device number in interruping devices bit map */
 #define	KUSEG3START			0xC0000
 #define KUSEG2LAST			0xBFFFF
 #define LASTPAGEKUSEG2		0xC0000000
-#define UPROCPCINIT			0x800000B0
+#define UPROCPCINIT			0x80000004 /* 0x800000B0 */
 #define LEGALADDRSTART		0x80000000
 /* buffer and stack stuff */
 #define TAPEBUFFERSTART		ROMPAGESTART + (OSFRAMES * PAGESIZE)
@@ -246,6 +246,8 @@ and device number in interruping devices bit map */
 #define WRITEBLK			4
 #define TRANSMITCHAR		2
 #define TERMINALSTATUSMASK	0xFF
+#define EOT			0
+#define EOF			1
 #define EOB					2
 #define CHARTRANSMITTED		5
 

@@ -43,7 +43,6 @@ void test()
 
 	/* initialize ksegOS page table */
 	ksegosPT.header = (MAGICNUM << MAGICNUMSHIFT) | MAXKSEGOS;
-	debug((int) ksegosPT.header,0,0,0);
 	/* initialize entry for each page */
 	for(i = 0; i < MAXKSEGOS; i++)
 	{
@@ -51,12 +50,11 @@ void test()
 		ksegosPT.entries[i].entryHi = (KSEGOSSTART + i) << PAGESHIFT;
 		/* entryLo = 0x20000 + i with dirty, valid, global */
 		ksegosPT.entries[i].entryLo = ((KSEGOSSTART + i) << PAGESHIFT) | DIRTYON | VALIDON | GLOBALON;
-		if(i==0 || i==1){ debug((int)ksegosPT.entries[i].entryHi,(int)ksegosPT.entries[i].entryLo,0,0); }
+		/* debug((int)ksegosPT.entries[i].entryHi, (int)ksegosPT.entries[i].entryLo,0,0); */
 	}
 
 	/* initialize kuseg3 page table */
 	kuseg3PT.header = (MAGICNUM << MAGICNUMSHIFT) | MAXKUSEG;
-	debug((int)kuseg3PT.header,0,0,0);
 	/* initialize entry for each page */
 	for(i = 0; i < MAXKUSEG; i++)
 	{
@@ -64,7 +62,6 @@ void test()
 		kuseg3PT.entries[i].entryHi = (KUSEG3START + i) << PAGESHIFT;
 		/* entryLo = dirty, global */
 		kuseg3PT.entries[i].entryLo = ALLOFF | DIRTYON | GLOBALON;
-		if(i==0 || i==1){ debug((int)kuseg3PT.entries[i].entryHi,(int)kuseg3PT.entries[i].entryLo,0,0); }
 	}
 
 	/* initialize swap pool entries */
@@ -96,7 +93,7 @@ void test()
 		for(i = 0; i < MAXKUSEG; i++)
 		{
 			/* entryHi = 0x80000 + i with ASID n */
-			userProcArray[n-1].kuseg2PT.entries[i].entryHi = ((KUSEG2START + i) << PAGESHIFT) | (n << ASIDSHIFT); 
+			userProcArray[n-1].kuseg2PT.entries[i].entryHi = ((KUSEG2START + i) << PAGESHIFT) | (n << ASIDSHIFT);
 			/* entryLo = no frame #, dirty, not valid, not global */
 			userProcArray[n-1].kuseg2PT.entries[i].entryLo = ALLOFF | DIRTYON;
 		}
@@ -107,7 +104,6 @@ void test()
 		segTable->entries[n-1].ksegos = &ksegosPT; 							/* ksegOS = global var table */
 		segTable->entries[n-1].kuseg2 = &(userProcArray[n-1].kuseg2PT);		/* kuseg2 = process's specific table we just set up */
 		segTable->entries[n-1].kuseg3 = &kuseg3PT;							/* kuseg3 = global var table */
-		debug((int)segTable,(int)&(segTable->entries[n-1].ksegos),(int)&(segTable->entries[n-1].kuseg2),(int)&(segTable->entries[n-1].kuseg3));
 
 		/* setup initial process state that will complete user process setup */
 		initialState.s_asid = n << ASIDSHIFT;
@@ -139,24 +135,23 @@ HIDDEN void uProcInit()
 
 	/* who am i? */
 	asid = (getENTRYHI() & ASIDMASK) >> ASIDSHIFT;
-
+	debug(asid, 0 ,0 ,0);
 	/* set up 3 new areas for pass up or die */
 	/* TLB */
 	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_asid = asid << ASIDSHIFT;
-	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_sp = getStackPageAddr(asid, TLBEXCEPTION);
+	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_sp = (memaddr) getStackPageAddr(asid, TLBEXCEPTION);
 	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_pc = (memaddr) UserTLBHandler;
 	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_t9 = (memaddr) UserTLBHandler;
 	userProcArray[asid-1].newAreas[TLBEXCEPTION].s_status = newStateStatus;
-	debug((int)((memaddr) UserTLBHandler),0,0,0);
 	/* Program Trap */
 	userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION].s_asid = asid << ASIDSHIFT;
-	userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION].s_sp = getStackPageAddr(asid, PROGRAMTRAPEXCEPTION);
+	userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION].s_sp = (memaddr) getStackPageAddr(asid, PROGRAMTRAPEXCEPTION);
 	userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION].s_pc = (memaddr) UserProgramTrapHandler;
 	userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION].s_t9 = (memaddr) UserProgramTrapHandler;
 	userProcArray[asid-1].newAreas[PROGRAMTRAPEXCEPTION].s_status = newStateStatus;
 	/* Syscall */
 	userProcArray[asid-1].newAreas[SYSCALLEXCEPTION].s_asid = asid << ASIDSHIFT;
-	userProcArray[asid-1].newAreas[SYSCALLEXCEPTION].s_sp = getStackPageAddr(asid, SYSCALLEXCEPTION);
+	userProcArray[asid-1].newAreas[SYSCALLEXCEPTION].s_sp = (memaddr) getStackPageAddr(asid, SYSCALLEXCEPTION);
 	userProcArray[asid-1].newAreas[SYSCALLEXCEPTION].s_pc = (memaddr) UserSyscallHandler;
 	userProcArray[asid-1].newAreas[SYSCALLEXCEPTION].s_t9 = (memaddr) UserSyscallHandler;
 	userProcArray[asid-1].newAreas[SYSCALLEXCEPTION].s_status = newStateStatus;
@@ -171,10 +166,10 @@ HIDDEN void uProcInit()
 
 	/* set up user process's initial state */
 	initialState.s_asid = asid << ASIDSHIFT;
-	initialState.s_sp = LASTPAGEKUSEG2;									/* stack page is the last page of kuseg2 */
-	initialState.s_status = ALLOFF | INTERRUPTSUNMASKED | INTERRUPTMASKON | TEBITON | VMONPREV | KERNELOFF;
-	initialState.s_pc = UPROCPCINIT;									/* pc is the second word of kuseg2 */
-	initialState.s_t9 = UPROCPCINIT;
+	initialState.s_sp = (memaddr) LASTPAGEKUSEG2;									/* stack page is the last page of kuseg2 */
+	initialState.s_status = ALLOFF | INTERRUPTSUNMASKED | INTERRUPTMASKON | TEBITON | KERNELOFF | VMONPREV;
+	initialState.s_pc = (memaddr) UPROCPCINIT;									/* pc is the second word of kuseg2 */
+	initialState.s_t9 = (memaddr) UPROCPCINIT;
 
 	debug((int)initialState.s_status,0,0,0);
 	LDST(&initialState);												/* start the user process up and running */
@@ -188,7 +183,6 @@ HIDDEN void readTape(int procNum)
 	int tapeDeviceNum = procNum-1;
 	int zero = 0;
 	device_t* tape = (device_t*) (BASEDEVICEADDRESS + ((TAPELINE - INITIALDEVLINENUM) * DEVICETYPESIZE) + (tapeDeviceNum * DEVICESIZE));
-
 	allowInterrupts(FALSE);
 	/* read the tape */
 	tape->d_data0 = getTapeBufferAddr(tapeDeviceNum); /* put starting address of where we wanna put the tape data */
@@ -217,7 +211,8 @@ HIDDEN void readTape(int procNum)
 		/* release mutex of disk0 */
 		SYSCALL(VERHOGEN, (int)&(deviceSema4s[devIndex]), zero, zero);
 
-		moreToRead = (tape->d_data1 == EOB);
+		moreToRead = (tape->d_data1 == EOB); /* (tape->d_data1 == EOB); */
+		debug(getCylinderNum(i), getSectorNum(procNum), getHeadNum(KUSEG2), moreToRead);
 		i++;
 
 		if(moreToRead)
@@ -257,7 +252,6 @@ unsigned int getDiskBufferAddr(int diskNum)
 
 unsigned int getStackPageAddr(int procNum, int exceptionType)
 {
-	debug((int) STACKPOOLSTART + ((procNum-1) * UPROCSTACKSIZE * PAGESIZE) + (exceptionType * PAGESIZE) + PAGESIZE,0,0,0);
 	return STACKPOOLSTART + ((procNum-1) * UPROCSTACKSIZE * PAGESIZE) + (exceptionType * PAGESIZE) + PAGESIZE;
 }
 
