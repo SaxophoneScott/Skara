@@ -65,8 +65,8 @@ void UserTLBHandler()
 	}
 
 	/* the page ain't there, so we gotta problem to fix */
-	int deviceIndex;
-	device_t* backingStore;
+	int deviceIndex = (DISKLINE - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + BACKINGSTORE;
+	device_t* backingStore = (device_t*) (BASEDEVICEADDRESS + ((DISKLINE - INITIALDEVLINENUM) * DEVICETYPESIZE) + (BACKINGSTORE * DEVICESIZE));
 	frame = findFrame();
 	frameAddr = getFrameAddr(framePoolStart, frame);
 	debug2(frame, (int)frameAddr,(int)framePoolStart,0);
@@ -97,12 +97,10 @@ void UserTLBHandler()
 
 		/* assume the page is dirty, so write it to backing store */
 		/* get mutex of disk0 */
-		deviceIndex = (DISKLINE - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + BACKINGSTORE;
 		SYSCALL(PASSEREN, (int)&(deviceSema4s[deviceIndex]), 0, 0);
 
 		allowInterrupts(FALSE);
 		/* write to disk0 */
-		backingStore = (device_t*) (BASEDEVICEADDRESS + ((DISKLINE - INITIALDEVLINENUM) * DEVICETYPESIZE) + (BACKINGSTORE * DEVICESIZE));
 		backingStore->d_command = SEEKCYL + (getCylinderNum(pageToBoot) << DEVICECOMMANDSHIFT);
 		SYSCALL(WAITFORIO, DISKLINE, BACKINGSTORE, 0);
 
@@ -119,12 +117,10 @@ void UserTLBHandler()
 	/* read missing page into selected frame */
 
 	/* get mutex of disk0 */
-	deviceIndex = (DISKLINE - INITIALDEVLINENUM) * NUMDEVICESPERTYPE + BACKINGSTORE;
 	SYSCALL(PASSEREN, (int)&(deviceSema4s[deviceIndex]), 0, 0);
 
 	allowInterrupts(FALSE);
 	/* write to disk0 */
-	backingStore = (device_t*) (BASEDEVICEADDRESS + ((DISKLINE - INITIALDEVLINENUM) * DEVICETYPESIZE) + (BACKINGSTORE * DEVICESIZE));
 	backingStore->d_command = SEEKCYL + (getCylinderNum(page) << DEVICECOMMANDSHIFT);
 	SYSCALL(WAITFORIO, DISKLINE, BACKINGSTORE, 0);
 
